@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900;
+  }
+}
+
+.ielts-highlight-orange {
+  background-color: #ff4d4d;
+  color: white !important;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+.ielts-highlight-black {
+  background-color: #333;
+  color: white !important;
+  padding: 0 2px;
+  border-radius: 2px;
+}
