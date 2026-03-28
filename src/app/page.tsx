@@ -304,7 +304,15 @@ export default function Home() {
           </div>
         </div>
       </section>}
-    </div>
+      <div className="flex justify-center gap-6 text-sm text-slate-500 mt-16 pb-8">
+  <Link href="/privacy">Privacy Policy</Link>
+  <Link href="/terms">Terms of Service</Link>
+</div>
+
+</div>
+);
+}
+</div>
   );
 }
 
