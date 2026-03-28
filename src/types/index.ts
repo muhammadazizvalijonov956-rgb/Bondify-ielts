@@ -47,7 +47,11 @@ export interface Event {
   status: 'upcoming' | 'active' | 'completed';
   winners: string[]; // array of userIds
   participants: string[]; // array of userIds
-  questions: any[]; // Test questions
+  questions?: any[]; // Legacy fallback
+  reading?: any[];
+  listening?: any[];
+  writing?: any[];
+  speaking?: any[];
   createdAt: string;
 }
 
