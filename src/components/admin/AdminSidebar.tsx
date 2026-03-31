@@ -12,7 +12,8 @@ import {
   LogOut,
   ShieldCheck,
   Bell,
-  Code2
+  Code2,
+  Activity
 } from 'lucide-react';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { auth } from '@/lib/firebase/config';
@@ -20,6 +21,7 @@ import { auth } from '@/lib/firebase/config';
 const navItems = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Tests Control', href: '/admin/tests', icon: FileText },
+  { name: 'Test Monitor', href: '/admin/test-monitor', icon: Activity },
   { name: 'User Management', href: '/admin/users', icon: Users },
   { name: 'Events', href: '/admin/events', icon: CalendarDays },
   { name: 'Leaderboard', href: '/admin/leaderboard', icon: Trophy },
