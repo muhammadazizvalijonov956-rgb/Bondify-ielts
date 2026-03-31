@@ -20,7 +20,7 @@ const PACKS = {
 export default function PricingPage() {
   const { user, profile } = useAuth();
   const router = useRouter();
-  
+
   const [selectedPack, setSelectedPack] = useState<keyof typeof PACKS | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -99,7 +99,7 @@ export default function PricingPage() {
           <p className="text-slate-500 font-medium text-lg leading-relaxed mb-8">
             Your payment is under review. Our team will verify it within <span className="text-slate-900 font-bold">5–15 minutes</span>.
           </p>
-          <button 
+          <button
             onClick={() => router.push('/')}
             className="w-full py-4 bg-slate-900 hover:bg-black text-white rounded-2xl font-bold transition-all shadow-xl shadow-slate-900/10"
           >
@@ -114,7 +114,7 @@ export default function PricingPage() {
     const pack = PACKS[selectedPack];
     return (
       <div className="max-w-4xl mx-auto px-4 py-16">
-        <button 
+        <button
           onClick={() => setSelectedPack(null)}
           className="flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold mb-8 transition-colors group"
         >
@@ -135,8 +135,14 @@ export default function PricingPage() {
                   <CreditCard className="w-5 h-5 text-slate-400" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Card Number</p>
-                  <p className="font-black text-lg tracking-wider">8600 0123 4567 8901</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Card Numbers</p>
+                  <div className="space-y-1">
+                    <p className="font-black text-lg tracking-wider leading-none">5614 6821 1683 3312</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">OR</span>
+                      <p className="font-black text-lg tracking-wider leading-none text-slate-600">9860 1701 1086 8941</p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -146,7 +152,7 @@ export default function PricingPage() {
                 </div>
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Card Holder</p>
-                  <p className="font-bold">M. Valiijonov (Founder)</p>
+                  <p className="font-bold">M. Valijonov (Founder)</p>
                 </div>
               </div>
 
@@ -157,7 +163,7 @@ export default function PricingPage() {
                   </div>
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-widest text-blue-400">Support / Telegram</p>
-                    <Link href="https://t.me/your_telegram" target="_blank" className="font-bold hover:underline">@bondify_support</Link>
+                    <Link href="https://t.me/vm_aziz" target="_blank" className="font-bold hover:underline">@bondify_support</Link>
                   </div>
                 </div>
               </div>
@@ -174,11 +180,11 @@ export default function PricingPage() {
           {/* Right: Upload Form */}
           <div className="bg-slate-50 rounded-[3rem] p-10 border border-slate-200 border-dashed relative">
             <h2 className="text-2xl font-black text-slate-900 mb-8">Upload Proof</h2>
-            
+
             <form onSubmit={handleSubmitPayment} className="space-y-6">
               <div className="relative group cursor-pointer">
-                <input 
-                  type="file" 
+                <input
+                  type="file"
                   accept="image/*"
                   onChange={(e) => setFile(e.target.files?.[0] || null)}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
@@ -215,7 +221,7 @@ export default function PricingPage() {
                 </div>
               </div>
 
-              <button 
+              <button
                 type="submit"
                 disabled={!file || uploading}
                 className="w-full py-5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-2xl font-black text-lg transition-all shadow-xl shadow-primary-500/20 flex items-center justify-center gap-3"
@@ -235,7 +241,7 @@ export default function PricingPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-16">
-      
+
       <div className="text-center mb-16">
         <h1 className="text-4xl sm:text-5xl font-black text-slate-900 mb-6 font-display tracking-tight">Boost your IELTS band today</h1>
         <p className="text-xl text-slate-600 max-w-3xl mx-auto mb-10 leading-relaxed font-medium">
@@ -244,7 +250,7 @@ export default function PricingPage() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
-        
+
         {/* Go Plan */}
         <div className="bg-white rounded-[2rem] p-10 relative overflow-hidden flex flex-col transition-all duration-300 hover:shadow-2xl border border-slate-200">
           <div className="mb-8">
@@ -258,16 +264,16 @@ export default function PricingPage() {
             </div>
             <p className="text-slate-500 mt-4 font-medium">For casual test takers wanting a bit more practice.</p>
           </div>
-          
+
           <ul className="space-y-5 mb-10 text-slate-700 font-medium flex-grow">
-            <li className="flex gap-4 items-start"><CheckCircle2 className="w-6 h-6 text-emerald-500 shrink-0"/> 15 Tokens per day recharge</li>
-            <li className="flex gap-4 items-start"><CheckCircle2 className="w-6 h-6 text-emerald-500 shrink-0"/> Full access to all reading & listening tests</li>
-            <li className="flex gap-4 items-start"><CheckCircle2 className="w-6 h-6 text-emerald-500 shrink-0"/> Standard grading speed</li>
-            <li className="flex gap-4 items-start text-slate-400 opacity-80"><CheckCircle2 className="w-6 h-6 shrink-0"/> No human tutor grading</li>
-            <li className="flex gap-4 items-start text-slate-400 opacity-80"><CheckCircle2 className="w-6 h-6 shrink-0"/> No premium events access</li>
+            <li className="flex gap-4 items-start"><CheckCircle2 className="w-6 h-6 text-emerald-500 shrink-0" /> 15 Tokens per day recharge</li>
+            <li className="flex gap-4 items-start"><CheckCircle2 className="w-6 h-6 text-emerald-500 shrink-0" /> Full access to all reading & listening tests</li>
+            <li className="flex gap-4 items-start"><CheckCircle2 className="w-6 h-6 text-emerald-500 shrink-0" /> Standard grading speed</li>
+            <li className="flex gap-4 items-start text-slate-400 opacity-80"><CheckCircle2 className="w-6 h-6 shrink-0" /> No human tutor grading</li>
+            <li className="flex gap-4 items-start text-slate-400 opacity-80"><CheckCircle2 className="w-6 h-6 shrink-0" /> No premium events access</li>
           </ul>
-          
-          <button 
+
+          <button
             onClick={() => handleCheckout('go')}
             disabled={profile?.accountTier === 'go'}
             className="w-full py-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-lg transition-colors border border-slate-300 disabled:opacity-50"
@@ -279,8 +285,8 @@ export default function PricingPage() {
         {/* Plus Plan (Popular) */}
         <div className="bg-primary-600 rounded-[2rem] p-10 relative overflow-hidden flex flex-col transition-all duration-300 shadow-2xl border border-primary-500 transform lg:-translate-y-4">
           <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-amber-400 to-orange-500"></div>
-          <div className="absolute top-6 right-8 bg-amber-400 text-slate-900 font-bold text-xs uppercase tracking-wider px-4 py-1.5 rounded-full shadow-lg flex items-center gap-1"><Star className="w-3 h-3 fill-slate-900"/> BEST VALUE</div>
-          
+          <div className="absolute top-6 right-8 bg-amber-400 text-slate-900 font-bold text-xs uppercase tracking-wider px-4 py-1.5 rounded-full shadow-lg flex items-center gap-1"><Star className="w-3 h-3 fill-slate-900" /> BEST VALUE</div>
+
           <div className="mb-8 mt-2">
             <h3 className="text-2xl font-bold mb-3 text-white border-b border-primary-500/50 pb-6 w-full">Plus Plan</h3>
             <div className="flex items-baseline gap-2 mt-6">
@@ -289,16 +295,16 @@ export default function PricingPage() {
             </div>
             <p className="text-primary-100 mt-4 font-medium">The unlimited IELTS engine to guarantee high band scores.</p>
           </div>
-          
+
           <ul className="space-y-5 mb-10 text-white font-medium flex-grow">
-            <li className="flex gap-4 items-start"><CheckCircle2 className="w-6 h-6 text-amber-400 shrink-0"/> Unlimited tokens & result unlocks</li>
-            <li className="flex gap-4 items-start"><CheckCircle2 className="w-6 h-6 text-amber-400 shrink-0"/> Instant AI grading for Speaking & Writing</li>
-            <li className="flex gap-4 items-start"><CheckCircle2 className="w-6 h-6 text-amber-400 shrink-0"/> Premium Competition Events access</li>
-            <li className="flex gap-4 items-start"><CheckCircle2 className="w-6 h-6 text-amber-400 shrink-0"/> Detailed Analytics & Progression Graph</li>
-            <li className="flex gap-4 items-start text-primary-300/60 opacity-80"><CheckCircle2 className="w-6 h-6 shrink-0"/> No human tutor grading</li>
+            <li className="flex gap-4 items-start"><CheckCircle2 className="w-6 h-6 text-amber-400 shrink-0" /> Unlimited tokens & result unlocks</li>
+            <li className="flex gap-4 items-start"><CheckCircle2 className="w-6 h-6 text-amber-400 shrink-0" /> Instant AI grading for Speaking & Writing</li>
+            <li className="flex gap-4 items-start"><CheckCircle2 className="w-6 h-6 text-amber-400 shrink-0" /> Premium Competition Events access</li>
+            <li className="flex gap-4 items-start"><CheckCircle2 className="w-6 h-6 text-amber-400 shrink-0" /> Detailed Analytics & Progression Graph</li>
+            <li className="flex gap-4 items-start text-primary-300/60 opacity-80"><CheckCircle2 className="w-6 h-6 shrink-0" /> No human tutor grading</li>
           </ul>
-          
-          <button 
+
+          <button
             onClick={() => handleCheckout('plus')}
             disabled={profile?.accountTier === 'plus'}
             className="w-full py-4 rounded-xl bg-white text-primary-700 hover:bg-slate-50 shadow-lg font-bold text-lg transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-80"
@@ -312,7 +318,7 @@ export default function PricingPage() {
           <div className="mb-8">
             <h3 className="text-2xl font-bold mb-3 text-slate-100 border-b border-slate-700 pb-6 w-full flex items-center justify-between">
               Pro Plan
-              <span className="bg-slate-800 text-slate-400 font-bold px-3 py-1 rounded-full text-sm uppercase tracking-wider flex items-center gap-1"><ShieldCheck className="w-4 h-4"/> Elite</span>
+              <span className="bg-slate-800 text-slate-400 font-bold px-3 py-1 rounded-full text-sm uppercase tracking-wider flex items-center gap-1"><ShieldCheck className="w-4 h-4" /> Elite</span>
             </h3>
             <div className="flex items-baseline gap-2 mt-6">
               <span className="text-5xl font-black text-white tracking-tighter">$19</span>
@@ -320,16 +326,16 @@ export default function PricingPage() {
             </div>
             <p className="text-slate-400 mt-4 font-medium">For serious candidates who need expert human-guidance.</p>
           </div>
-          
+
           <ul className="space-y-5 mb-10 text-slate-300 font-medium flex-grow">
-            <li className="flex gap-4 items-start"><CheckCircle2 className="w-6 h-6 text-blue-400 shrink-0"/> Everything in Plus</li>
-            <li className="flex gap-4 items-start"><CheckCircle2 className="w-6 h-6 text-blue-400 shrink-0"/> 4 Human-graded Writing Tasks / mo</li>
-            <li className="flex gap-4 items-start"><CheckCircle2 className="w-6 h-6 text-blue-400 shrink-0"/> 2 1-on-1 Mock Speaking Interviews / mo</li>
-            <li className="flex gap-4 items-start"><CheckCircle2 className="w-6 h-6 text-blue-400 shrink-0"/> Guaranteed Band 7+ or Money Back</li>
-            <li className="flex gap-4 items-start"><CheckCircle2 className="w-6 h-6 text-blue-400 shrink-0"/> VIP Event Access with highest multipliers</li>
+            <li className="flex gap-4 items-start"><CheckCircle2 className="w-6 h-6 text-blue-400 shrink-0" /> Everything in Plus</li>
+            <li className="flex gap-4 items-start"><CheckCircle2 className="w-6 h-6 text-blue-400 shrink-0" /> 4 Human-graded Writing Tasks / mo</li>
+            <li className="flex gap-4 items-start"><CheckCircle2 className="w-6 h-6 text-blue-400 shrink-0" /> 2 1-on-1 Mock Speaking Interviews / mo</li>
+            <li className="flex gap-4 items-start"><CheckCircle2 className="w-6 h-6 text-blue-400 shrink-0" /> Guaranteed Band 7+ or Money Back</li>
+            <li className="flex gap-4 items-start"><CheckCircle2 className="w-6 h-6 text-blue-400 shrink-0" /> VIP Event Access with highest multipliers</li>
           </ul>
-          
-          <button 
+
+          <button
             onClick={() => handleCheckout('pro')}
             disabled={profile?.accountTier === 'pro'}
             className="w-full py-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-lg transition-colors border border-slate-600 shadow-sm disabled:opacity-50"
@@ -339,89 +345,89 @@ export default function PricingPage() {
         </div>
 
       </div>
-      
+
       {/* ── TOKEN SHOP ── */}
       <div id="tokens" className="mt-24 mb-10 pt-10">
         <div className="text-center mb-12">
-            <h2 className="text-3xl font-black text-slate-900 mb-3 tracking-tight">Need more tokens?</h2>
-            <p className="text-lg text-slate-500 font-medium">Top up your balance instantly to unlock more test results</p>
+          <h2 className="text-3xl font-black text-slate-900 mb-3 tracking-tight">Need more tokens?</h2>
+          <p className="text-lg text-slate-500 font-medium">Top up your balance instantly to unlock more test results</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {/* Starter Bundle */}
-            <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm hover:shadow-md transition-shadow group">
-                <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                    <Zap className="w-6 h-6 text-slate-400" />
-                </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-1">Starter Pack</h3>
-                <div className="flex items-baseline gap-1 mb-6">
-                    <span className="text-3xl font-black text-slate-900">$1</span>
-                </div>
-                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 mb-8">
-                    <div className="flex items-center gap-2 text-slate-700 font-black">
-                        <Zap className="w-5 h-5 text-amber-500 fill-amber-500" />
-                        <span className="text-2xl">5 Tokens</span>
-                    </div>
-                    <p className="text-xs text-slate-400 font-bold mt-1 uppercase tracking-wider font-display">Fast results</p>
-                </div>
-                <button 
-                  onClick={() => handleCheckout('tokens-starter')}
-                  className="w-full py-3.5 rounded-xl bg-white hover:bg-slate-50 text-slate-900 font-black text-sm border-2 border-slate-200 transition-all active:scale-95"
-                >
-                  Buy Starter
-                </button>
+          {/* Starter Bundle */}
+          <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm hover:shadow-md transition-shadow group">
+            <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <Zap className="w-6 h-6 text-slate-400" />
             </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-1">Starter Pack</h3>
+            <div className="flex items-baseline gap-1 mb-6">
+              <span className="text-3xl font-black text-slate-900">$1</span>
+            </div>
+            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 mb-8">
+              <div className="flex items-center gap-2 text-slate-700 font-black">
+                <Zap className="w-5 h-5 text-amber-500 fill-amber-500" />
+                <span className="text-2xl">5 Tokens</span>
+              </div>
+              <p className="text-xs text-slate-400 font-bold mt-1 uppercase tracking-wider font-display">Fast results</p>
+            </div>
+            <button
+              onClick={() => handleCheckout('tokens-starter')}
+              className="w-full py-3.5 rounded-xl bg-white hover:bg-slate-50 text-slate-900 font-black text-sm border-2 border-slate-200 transition-all active:scale-95"
+            >
+              Buy Starter
+            </button>
+          </div>
 
-            {/* Popular Bundle */}
-            <div className="bg-white rounded-3xl p-8 border-2 border-primary-500 shadow-xl relative overflow-hidden group">
-                <div className="absolute top-0 right-0 bg-primary-500 text-white text-[10px] font-black px-4 py-1.5 rounded-bl-2xl uppercase tracking-widest">
-                    Best Value 🔥
-                </div>
-                <div className="w-12 h-12 bg-primary-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                    <Zap className="w-6 h-6 text-primary-500 fill-primary-500" />
-                </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-1">Popular Pack</h3>
-                <div className="flex items-baseline gap-1 mb-6">
-                    <span className="text-3xl font-black text-slate-900">$5</span>
-                </div>
-                <div className="bg-primary-50 rounded-2xl p-4 border border-primary-100 mb-8">
-                    <div className="flex items-center gap-2 text-primary-700 font-black">
-                        <Zap className="w-5 h-5 text-amber-500 fill-amber-500" />
-                        <span className="text-2xl">26 Tokens</span>
-                    </div>
-                    <p className="text-xs text-primary-400 font-bold mt-1 uppercase tracking-wider">Most popular choice</p>
-                </div>
-                <button 
-                  onClick={() => handleCheckout('tokens-popular')}
-                  className="w-full py-3.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-black text-sm transition-all shadow-lg shadow-primary-500/20 active:scale-95"
-                >
-                  Buy Popular
-                </button>
+          {/* Popular Bundle */}
+          <div className="bg-white rounded-3xl p-8 border-2 border-primary-500 shadow-xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 bg-primary-500 text-white text-[10px] font-black px-4 py-1.5 rounded-bl-2xl uppercase tracking-widest">
+              Best Value 🔥
             </div>
+            <div className="w-12 h-12 bg-primary-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <Zap className="w-6 h-6 text-primary-500 fill-primary-500" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-1">Popular Pack</h3>
+            <div className="flex items-baseline gap-1 mb-6">
+              <span className="text-3xl font-black text-slate-900">$5</span>
+            </div>
+            <div className="bg-primary-50 rounded-2xl p-4 border border-primary-100 mb-8">
+              <div className="flex items-center gap-2 text-primary-700 font-black">
+                <Zap className="w-5 h-5 text-amber-500 fill-amber-500" />
+                <span className="text-2xl">26 Tokens</span>
+              </div>
+              <p className="text-xs text-primary-400 font-bold mt-1 uppercase tracking-wider">Most popular choice</p>
+            </div>
+            <button
+              onClick={() => handleCheckout('tokens-popular')}
+              className="w-full py-3.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-black text-sm transition-all shadow-lg shadow-primary-500/20 active:scale-95"
+            >
+              Buy Popular
+            </button>
+          </div>
 
-            {/* Pro Bundle */}
-            <div className="bg-slate-900 rounded-3xl p-8 border border-slate-800 shadow-lg group">
-                <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                    <Zap className="w-6 h-6 text-blue-400 fill-blue-400" />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-1">Pro Bundle</h3>
-                <div className="flex items-baseline gap-1 mb-6">
-                    <span className="text-3xl font-black text-white">$10</span>
-                </div>
-                <div className="bg-white/5 rounded-2xl p-4 border border-white/10 mb-8">
-                    <div className="flex items-center gap-2 text-white font-black">
-                        <Zap className="w-5 h-5 text-amber-500 fill-amber-500" />
-                        <span className="text-2xl">51 Tokens</span>
-                    </div>
-                    <p className="text-xs text-slate-500 font-bold mt-1 uppercase tracking-wider">Heavy practice</p>
-                </div>
-                <button 
-                  onClick={() => handleCheckout('tokens-pro')}
-                  className="w-full py-3.5 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-black text-sm transition-all active:scale-95"
-                >
-                  Buy Pro Pack
-                </button>
+          {/* Pro Bundle */}
+          <div className="bg-slate-900 rounded-3xl p-8 border border-slate-800 shadow-lg group">
+            <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <Zap className="w-6 h-6 text-blue-400 fill-blue-400" />
             </div>
+            <h3 className="text-xl font-bold text-white mb-1">Pro Bundle</h3>
+            <div className="flex items-baseline gap-1 mb-6">
+              <span className="text-3xl font-black text-white">$10</span>
+            </div>
+            <div className="bg-white/5 rounded-2xl p-4 border border-white/10 mb-8">
+              <div className="flex items-center gap-2 text-white font-black">
+                <Zap className="w-5 h-5 text-amber-500 fill-amber-500" />
+                <span className="text-2xl">51 Tokens</span>
+              </div>
+              <p className="text-xs text-slate-500 font-bold mt-1 uppercase tracking-wider">Heavy practice</p>
+            </div>
+            <button
+              onClick={() => handleCheckout('tokens-pro')}
+              className="w-full py-3.5 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-black text-sm transition-all active:scale-95"
+            >
+              Buy Pro Pack
+            </button>
+          </div>
         </div>
       </div>
 
