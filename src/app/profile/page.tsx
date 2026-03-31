@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { db } from '@/lib/firebase/config';
-import { doc, updateDoc } from 'firebase/firestore';
-import { User as UserIcon, Camera, Copy, CheckCircle2, Star, Trophy, Target, Award } from 'lucide-react';
+import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { User as UserIcon, Camera, Copy, CheckCircle2, Star, Trophy, Target, Award, TrendingUp, AlertCircle, Activity, ChevronRight, Zap } from 'lucide-react';
 
 export default function ProfilePage() {
   const { user, profile } = useAuth();
@@ -13,6 +13,7 @@ export default function ProfilePage() {
   const [newUsername, setNewUsername] = useState(profile?.username || '');
   const [copiedLink, setCopiedLink] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState<any>(null);
 
   useEffect(() => {
     // Generate referral code if it doesn't exist (for existing users)
@@ -27,7 +28,22 @@ export default function ProfilePage() {
         }
       }
     };
+
+    const fetchProgress = async () => {
+      if (profile && profile.uid) {
+        try {
+          const snap = await getDoc(doc(db, 'user_progress', profile.uid));
+          if (snap.exists()) {
+            setProgress(snap.data());
+          }
+        } catch (err) {
+          console.error("Failed to fetch user progress", err);
+        }
+      }
+    };
+
     ensureReferralCode();
+    fetchProgress();
   }, [profile]);
 
   const handleUpdateUsername = async () => {
@@ -144,6 +160,77 @@ export default function ProfilePage() {
                 </a>
               )}
             </div>
+
+            {/* My Progress Section */}
+            {progress && (
+              <div className="bg-white rounded-3xl shadow-lg border border-slate-100 p-8">
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-fuchsia-50 border border-fuchsia-100 flex items-center justify-center">
+                      <TrendingUp className="w-6 h-6 text-fuchsia-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-slate-900 text-xl">My Progress</h3>
+                      <p className="text-xs text-slate-500 font-medium tracking-wide uppercase mt-0.5">IELTS Performance Dashboard</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-1">Overall Band</span>
+                    <span className="text-3xl font-black text-slate-900">{progress.overall_score > 0 ? progress.overall_score.toFixed(1) : '—'}</span>
+                  </div>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-x-8 gap-y-6">
+                  {[
+                    { key: 'reading_score', label: 'Reading', color: 'from-blue-500 to-indigo-500', bg: 'bg-blue-50', text: 'text-blue-700' },
+                    { key: 'listening_score', label: 'Listening', color: 'from-purple-500 to-fuchsia-500', bg: 'bg-purple-50', text: 'text-purple-700' },
+                    { key: 'writing_score', label: 'Writing', color: 'from-emerald-400 to-teal-500', bg: 'bg-emerald-50', text: 'text-emerald-700' },
+                    { key: 'speaking_score', label: 'Speaking', color: 'from-amber-400 to-orange-500', bg: 'bg-amber-50', text: 'text-amber-700' }
+                  ].map(sec => {
+                    const score = progress[sec.key] || 0;
+                    const pct = (score / 9.0) * 100;
+                    return (
+                      <div key={sec.key} className="space-y-2">
+                        <div className="flex justify-between items-end">
+                          <span className={`text-xs font-black uppercase tracking-wider ${sec.text}`}>{sec.label}</span>
+                          <span className="font-bold text-slate-900">{score.toFixed(1)} <span className="text-[10px] text-slate-400">/ 9.0</span></span>
+                        </div>
+                        <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div className={`h-full bg-gradient-to-r ${sec.color}`} style={{ width: `${pct}%` }}></div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {(() => {
+                  const scores = [
+                    { name: 'Reading', val: progress.reading_score },
+                    { name: 'Listening', val: progress.listening_score },
+                    { name: 'Writing', val: progress.writing_score },
+                    { name: 'Speaking', val: progress.speaking_score }
+                  ].filter(s => s.val > 0).sort((a,b) => a.val - b.val);
+                  
+                  if (scores.length > 0) {
+                    const weakest = scores[0].name;
+                    return (
+                      <div className="mt-8 pt-6 border-t border-slate-100 flex gap-4">
+                        <div className="shrink-0 w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center border border-rose-100">
+                          <AlertCircle className="w-6 h-6 text-rose-500" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-black text-rose-700 mb-1">Attention Area: {weakest}</p>
+                          <p className="text-xs font-medium text-slate-600 leading-relaxed">
+                            Your weakest area is currently <strong className="text-slate-900">{weakest}</strong>. We strongly recommend focusing your next 3 practice sessions exclusively on {weakest} tasks to pull up your overall band.
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
+            )}
 
             <div className="grid sm:grid-cols-2 gap-6">
               
