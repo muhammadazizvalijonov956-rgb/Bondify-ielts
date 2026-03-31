@@ -462,7 +462,7 @@ export default function TakingListeningTest() {
           </div>
         )}
 
-        <div className="bg-white border-b border-slate-200 sticky top-[60px] z-40 w-full px-6 py-2.5 shadow-sm">
+        <div key={`listening-header-${activePartIndex}`} className="bg-white border-b border-slate-200 sticky top-[60px] z-40 w-full px-6 py-2.5 shadow-sm">
           <div className="w-full max-w-6xl mx-auto flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <div className="text-[13px] font-bold text-slate-800">
@@ -484,7 +484,7 @@ export default function TakingListeningTest() {
               <p className="font-bold text-[13px] text-black">Write ONE WORD AND/OR A NUMBER for each answer.</p>
             </div>
           )}
-          <div className="bg-white border border-slate-300 rounded-sm p-8 min-h-[500px] relative" ref={contentRef}>
+          <div key={`listening-content-${activePartIndex}`} className="bg-white border border-slate-300 rounded-sm p-8 min-h-[500px] relative" ref={contentRef}>
             <SelectionHighlighter containerRef={contentRef} />
             {isNewSchema ? renderItems(activePart.items, answers, handleAnswer, questionRefs) : (
               <>
