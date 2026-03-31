@@ -32,22 +32,50 @@ export function useAutoSave({
   const isOnlineRef = useRef(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // 1. Initial Load: Check localStorage
+  // 1. Initial Load: Check localStorage, then fallback to backend if recoverable
   useEffect(() => {
-    if (!localKey) return;
-    const localDataStr = localStorage.getItem(localKey);
-    if (localDataStr) {
-      try {
-        const data: AutoSaveData = JSON.parse(localDataStr);
-        // Only recover if there is data and it's from the same section
-        if (data && data.section === section && (Object.keys(data.answers || {}).length > 0)) {
-          setRecoveredData(data);
-          setShowRecoverPrompt(true);
+    const initializeRecovery = async () => {
+      let recoveredFromLocal = false;
+      if (localKey) {
+        const localDataStr = localStorage.getItem(localKey);
+        if (localDataStr) {
+          try {
+            const data: AutoSaveData = JSON.parse(localDataStr);
+            if (data && data.section === section && (Object.keys(data.answers || {}).length > 0)) {
+              setRecoveredData(data);
+              setShowRecoverPrompt(true);
+              recoveredFromLocal = true;
+            }
+          } catch (err) {
+            console.error("Failed to parse local test data", err);
+          }
         }
-      } catch (err) {
-        console.error("Failed to parse local test data", err);
       }
-    }
+
+      // 2. Fetch from backend if no local data exists and session is marked 'recoverable'
+      if (!recoveredFromLocal && userId && testId && isOnlineRef.current) {
+        try {
+          const sessionId = `${userId}_${testId}`;
+          const snap = await getDoc(doc(db, 'test_sessions', sessionId));
+          if (snap.exists()) {
+            const remoteData = snap.data();
+            if (remoteData.recoverable && remoteData.section === section && remoteData.answers && Object.keys(remoteData.answers).length > 0) {
+              setRecoveredData({
+                answers: remoteData.answers,
+                section: remoteData.section,
+                last_question: remoteData.last_question ?? 0,
+                updated_at: remoteData.updated_at?.toMillis ? remoteData.updated_at.toMillis() : Date.now()
+              });
+              setShowRecoverPrompt(true);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to fetch remote recoverable session", err);
+        }
+      }
+    };
+
+    initializeRecovery();
     
     const handleOnline = () => { isOnlineRef.current = true; syncWithBackend(); };
     const handleOffline = () => { isOnlineRef.current = false; setSaveStatus('Offline - saved locally'); };
@@ -57,13 +85,21 @@ export function useAutoSave({
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [localKey, section]);
+  }, [localKey, section, userId, testId]);
 
   const handleRecover = (continueTest: boolean) => {
     if (continueTest && recoveredData) {
       if (recoveredData.answers) setAnswers(recoveredData.answers);
       if (recoveredData.last_question !== undefined) setActivePartIndex(recoveredData.last_question);
       setSaveStatus('Saved');
+      
+      // If continuing from remote, immediately save to local
+      if (userId && testId) {
+        saveLocally(recoveredData.answers || {}, recoveredData.last_question ?? 0);
+        // Also remove 'recoverable' flag from backend once restored
+        const sessionId = `${userId}_${testId}`;
+        updateDoc(doc(db, 'test_sessions', sessionId), { recoverable: false }).catch(() => {});
+      }
     } else {
       clearAutoSave();
     }
