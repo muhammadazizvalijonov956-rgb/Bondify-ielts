@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase/config';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, updateDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { useAutoSave } from '@/lib/hooks/useAutoSave';
 import { Mic, ArrowRight, Video, ChevronLeft, ChevronRight, Send, Upload, Clock, User, Sparkles, Users, Loader2 } from 'lucide-react';
 import TestNavbar from '@/components/TestNavbar';
 
@@ -14,8 +15,28 @@ export default function TakingSpeakingTest() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  const router = useRouter();
+  const params = useParams();
+  const testId = params.id as string;
+  const searchParams = useSearchParams();
+  const fullTestId = searchParams.get('fullTestId');
+  const { user, profile } = useAuth();
+
   // Navigation State
-  const [activePartIdx, setActivePartIdx] = useState(0);
+  const {
+    answers,
+    updateAnswer,
+    activePartIndex: activePartIdx,
+    updateActivePart: setActivePartIdx,
+    saveStatus,
+    showRecoverPrompt,
+    handleRecover,
+    markCompleted
+  } = useAutoSave({
+    testId,
+    userId: user?.uid,
+    section: 'speaking'
+  });
   const [activeQuestionIdx, setActiveQuestionIdx] = useState(0);
   const [timer, setTimer] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
@@ -29,18 +50,13 @@ export default function TakingSpeakingTest() {
   const queueDocRef = useRef<any>(null);
   const unsubscribeRef = useRef<any>(null);
 
-  const router = useRouter();
-  const params = useParams();
-  const searchParams = useSearchParams();
-  const fullTestId = searchParams.get('fullTestId');
-  const { user, profile } = useAuth();
+
 
   useEffect(() => {
     async function fetchTest() {
-      const id = params.id as string;
-      if (!id) return;
+      if (!testId) return;
       try {
-        const snap = await getDoc(doc(db, 'tests', id));
+        const snap = await getDoc(doc(db, 'tests', testId));
         if (snap.exists()) setTest({ id: snap.id, ...snap.data() });
       } catch (err) {
         console.error("Error fetching speaking test:", err);
@@ -49,7 +65,7 @@ export default function TakingSpeakingTest() {
       }
     }
     fetchTest();
-  }, [params.id]);
+  }, [testId]);
 
   useEffect(() => {
     let interval: any;
@@ -186,6 +202,7 @@ export default function TakingSpeakingTest() {
 
     try {
       await setDoc(doc(db, 'attempts', attemptId), attempt);
+      await markCompleted();
 
       if (fullTestId) {
         const searchL = searchParams.get('l');
@@ -295,7 +312,30 @@ export default function TakingSpeakingTest() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-white flex flex-col font-sans text-slate-900 border-t-8 border-rose-500">
-        <TestNavbar durationMinutes={15} title="Speaking Practice" />
+        <TestNavbar durationMinutes={15} title="Speaking Practice" saveStatus={saveStatus} />
+
+        {showRecoverPrompt && (
+          <div className="fixed inset-0 z-[100] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full text-center">
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Unfinished Test Found</h3>
+              <p className="text-sm text-slate-500 mb-6">You have a previous session for this test. Would you like to resume where you left off?</p>
+              <div className="flex gap-3 justify-center">
+                <button 
+                  onClick={() => handleRecover(false)} 
+                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-colors"
+                >
+                  Restart Fresh
+                </button>
+                <button 
+                  onClick={() => handleRecover(true)} 
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 shadow-md shadow-blue-600/20 transition-all"
+                >
+                  Continue Test
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* --- INITIAL WAIT SCREEN --- */}
         {sessionMode === 'none' && (
