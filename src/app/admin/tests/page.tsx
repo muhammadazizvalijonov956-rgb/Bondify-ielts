@@ -10,6 +10,8 @@ export default function AdminTestsPage() {
   const [tests, setTests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterSection, setFilterSection] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
 
   useEffect(() => {
     fetchTests();
@@ -38,10 +40,20 @@ export default function AdminTestsPage() {
     }
   };
 
-  const filteredTests = tests.filter(test => 
-    test.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    test.section?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredTests = tests.filter(test => {
+    const matchesSearch = test.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      test.id?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Some tests use test.type, others use test.section
+    const testSec = test.section || test.type || 'unknown';
+    const matchesSection = filterSection === 'all' || testSec === filterSection;
+
+    // Status can be undefined for older tests, default to draft
+    const testStat = test.status || 'draft';
+    const matchesStatus = filterStatus === 'all' || testStat === filterStatus;
+
+    return matchesSearch && matchesSection && matchesStatus;
+  });
 
   return (
     <div className="p-8">
@@ -50,8 +62,8 @@ export default function AdminTestsPage() {
           <h1 className="text-3xl font-black text-slate-900">Test Management</h1>
           <p className="text-slate-500 font-medium mt-1">Create, edit, and organize practice tests.</p>
         </div>
-        <Link 
-          href="/admin/tests/create" 
+        <Link
+          href="/admin/tests/create"
           className="bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-colors flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
@@ -60,18 +72,43 @@ export default function AdminTestsPage() {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-          <div className="relative max-w-md w-full">
+        <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="relative w-full sm:max-w-md">
             <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Search tests by title or section..." 
+            <input
+              type="text"
+              placeholder="Search tests by title or ID..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
             />
           </div>
-          <div className="text-sm font-bold text-slate-500">{filteredTests.length} Tests Found</div>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <select
+              value={filterSection}
+              onChange={e => setFilterSection(e.target.value)}
+              className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 font-medium text-slate-700 w-full sm:w-auto"
+            >
+              <option value="all">All Sections</option>
+              <option value="listening">Listening</option>
+              <option value="reading">Reading</option>
+              <option value="writing">Writing</option>
+              <option value="speaking">Speaking</option>
+              <option value="full_length">Full Length</option>
+            </select>
+
+            <select
+              value={filterStatus}
+              onChange={e => setFilterStatus(e.target.value)}
+              className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 font-medium text-slate-700 w-full sm:w-auto"
+            >
+              <option value="all">All Statuses</option>
+              <option value="published">Published</option>
+              <option value="draft">Draft</option>
+              <option value="archived">Archived</option>
+            </select>
+          </div>
+          <div className="text-sm font-bold text-slate-500 hidden lg:block whitespace-nowrap">{filteredTests.length} Tests Found</div>
         </div>
 
         <div className="overflow-x-auto">
@@ -106,11 +143,10 @@ export default function AdminTestsPage() {
                       </span>
                     </td>
                     <td className="p-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                        test.status === 'published' ? 'bg-emerald-100 text-emerald-700' : 
-                        test.status === 'archived' ? 'bg-slate-200 text-slate-600' :
-                        'bg-amber-100 text-amber-700'
-                      }`}>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${test.status === 'published' ? 'bg-emerald-100 text-emerald-700' :
+                          test.status === 'archived' ? 'bg-slate-200 text-slate-600' :
+                            'bg-amber-100 text-amber-700'
+                        }`}>
                         {test.status || 'Draft'}
                       </span>
                     </td>
