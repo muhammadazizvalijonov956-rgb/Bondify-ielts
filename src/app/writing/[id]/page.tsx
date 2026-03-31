@@ -202,7 +202,7 @@ export default function TakingWritingTest() {
         {/* Main Split View */}
         <div className="flex-1 flex overflow-hidden">
           {/* Left Panel: Prompt */}
-          <div className="w-1/2 overflow-y-auto bg-white border-r border-slate-300 p-10 custom-scrollbar relative" ref={instructionRef}>
+          <div key={`writing-prompt-${activePartIndex}`} className="w-1/2 overflow-y-auto bg-white border-r border-slate-300 p-10 custom-scrollbar relative" ref={instructionRef}>
             <SelectionHighlighter containerRef={instructionRef} />
             
             {activePart.description && (
@@ -231,7 +231,7 @@ export default function TakingWritingTest() {
           </div>
 
           {/* Right Panel: Editor */}
-          <div className="w-1/2 flex flex-col bg-[#f8f9fa] p-10 overflow-hidden">
+          <div key={`writing-editor-${activePartIndex}`} className="w-1/2 flex flex-col bg-[#f8f9fa] p-10 overflow-hidden">
             <div className="flex-1 bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col overflow-hidden">
               <textarea
                 value={currentResponse}
