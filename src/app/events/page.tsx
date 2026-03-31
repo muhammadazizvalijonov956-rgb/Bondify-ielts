@@ -6,11 +6,13 @@ import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { Event } from '@/types';
 import { Calendar, DollarSign, Users, Award, Lock, Clock, HelpCircle } from 'lucide-react';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const { profile } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     async function fetchEvents() {
@@ -121,6 +123,7 @@ export default function EventsPage() {
                   </div>
 
                   <button 
+                    onClick={() => router.push(`/events/${evt.id}`)}
                     disabled={!canAccess || evt.status === 'completed'} 
                     className={`w-full font-black py-4 rounded-2xl transition-all shadow-xl flex justify-center items-center gap-2 text-sm tracking-widest uppercase ${
                       !canAccess ? 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none' :
