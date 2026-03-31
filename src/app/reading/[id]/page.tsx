@@ -473,6 +473,7 @@ export default function TakingReadingTest() {
         <div className="flex-1 flex overflow-hidden">
           {/* Left Panel: Passage */}
           <div 
+            key={`passage-panel-${activePartIndex}`}
             className="w-1/2 overflow-y-auto bg-white border-r border-slate-300 p-10 custom-scrollbar relative" 
             ref={passageRef}
             onDoubleClick={handleDoubleClick}
@@ -486,7 +487,7 @@ export default function TakingReadingTest() {
           </div>
 
           {/* Right Panel: Questions */}
-          <div className="w-1/2 overflow-y-auto bg-[#f8f9fa] p-10 custom-scrollbar">
+          <div key={`questions-panel-${activePartIndex}`} className="w-1/2 overflow-y-auto bg-[#f8f9fa] p-10 custom-scrollbar">
             <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-8 min-h-full">
               {Array.isArray(activePart.items) ? renderItems(activePart.items, answers, handleAnswer, questionRefs) : <p className="text-slate-400 italic">No questions configured for this passage.</p>}
             </div>
