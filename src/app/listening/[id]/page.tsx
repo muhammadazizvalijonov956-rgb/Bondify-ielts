@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { useAutoSave } from '@/lib/hooks/useAutoSave';
 import { ArrowRight, Volume2 } from 'lucide-react';
 import TestNavbar from '@/components/TestNavbar';
 import SelectionHighlighter from '@/components/SelectionHighlighter';
@@ -110,7 +111,7 @@ function renderItems(
                   <label key={i} className={`flex items-center gap-3 cursor-pointer text-[13px] group select-none`}>
                     <span className="w-6 h-6 rounded-full border-2 border-slate-400 flex items-center justify-center text-[11px] font-bold text-slate-600 shrink-0">{letter}</span>
                     <span className={`w-4 h-4 border-2 rounded flex items-center justify-center shrink-0 transition-colors ${checked ? 'bg-blue-600 border-blue-600' : 'border-slate-400 bg-white group-hover:border-blue-400'}`}>
-                      {checked && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                      {checked && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
                     </span>
                     <input type="checkbox" checked={checked} onChange={() => toggleOption(letter)} className="sr-only" />
                     <span className={checked ? 'font-semibold text-black' : 'text-black'}>{opt}</span>
@@ -153,8 +154,8 @@ function renderItems(
           <div key={key} ref={(el) => { questionRefs.current[qKey] = el; }} className="flex items-center gap-2 text-[13px] text-black mb-3 leading-relaxed flex-wrap">
             <span className="inline-flex items-center justify-center min-w-[1.375rem] h-[1.375rem] border border-slate-700 text-[10px] font-bold bg-white rounded-sm shrink-0">{item.id}</span>
             {item.label && <span className="font-medium mr-1">{item.label}</span>}
-            <select 
-              value={answers[qKey] ?? ''} 
+            <select
+              value={answers[qKey] ?? ''}
               onChange={e => onAnswer(qKey, e.target.value)}
               className="px-2 py-0.5 border border-slate-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold text-blue-700 min-w-[80px]"
             >
@@ -295,12 +296,28 @@ function renderOldQuestion(q: any, answers: Record<string, string>, onAnswer: (i
 export default function TakingListeningTest() {
   const [test, setTest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [activePartIndex, setActivePartIndex] = useState(0);
+
   const router = useRouter();
   const params = useParams();
+  const testId = params.id as string;
   const { user, profile } = useAuth();
+
+  const {
+    answers,
+    updateAnswer: handleAnswer,
+    activePartIndex,
+    updateActivePart: setActivePartIndex,
+    saveStatus,
+    showRecoverPrompt,
+    handleRecover,
+    markCompleted
+  } = useAutoSave({
+    testId,
+    userId: user?.uid,
+    section: 'listening'
+  });
+
   const searchParams = useSearchParams();
   const fullTestId = searchParams.get('fullTestId');
   const [fullTestComps, setFullTestComps] = useState<any>(null);
@@ -309,10 +326,9 @@ export default function TakingListeningTest() {
 
   useEffect(() => {
     async function fetchTest() {
-      const id = params.id as string;
-      if (!id) return;
+      if (!testId) return;
       try {
-        const snap = await getDoc(doc(db, 'tests', id));
+        const snap = await getDoc(doc(db, 'tests', testId));
         if (snap.exists()) setTest({ id: snap.id, ...snap.data() });
       } catch (err) {
         console.error("Error fetching test:", err);
@@ -321,7 +337,7 @@ export default function TakingListeningTest() {
       }
     }
     fetchTest();
-  }, [params.id]);
+  }, [testId]);
 
   useEffect(() => {
     if (fullTestId) {
@@ -332,8 +348,6 @@ export default function TakingListeningTest() {
       fetchFullConfig();
     }
   }, [fullTestId]);
-
-  const handleAnswer = (qId: string, value: string) => { setAnswers(prev => ({ ...prev, [qId]: value })); };
 
   const handleSubmit = async () => {
     if (!user || !test) return;
@@ -363,7 +377,7 @@ export default function TakingListeningTest() {
           // Support multiple correct options separated by slash
           const validAnswers = correctAnswer.split('/').map((a: string) => a.trim().toLowerCase());
           const isCorrect = validAnswers.includes(userAnswer.toLowerCase());
-          
+
           if (isCorrect) correctCount++;
           questionResults.push({ id: key, number: q.id ?? q.number, label: q.label || q.text || '', userAnswer, correctAnswer, isCorrect, partTitle: part.title || '' });
         }
@@ -373,25 +387,27 @@ export default function TakingListeningTest() {
     const normalizedRawScore = maxScore > 0 ? Math.floor((correctCount / maxScore) * 40) : 0;
     const band = calculateBandScore(normalizedRawScore);
     const attemptId = `att_${Date.now()}`;
-    const attempt = { 
-      id: attemptId, 
-      userId: user.uid, 
-      testId: test.id, 
-      testTitle: test.title || '', 
-      section: 'listening', 
-      startedAt: new Date().toISOString(), 
-      submittedAt: new Date().toISOString(), 
-      rawScore: correctCount, 
-      maxScore, 
-      normalizedScore: normalizedRawScore, 
-      estimatedBand: band, 
+    const attempt = {
+      id: attemptId,
+      userId: user.uid,
+      testId: test.id,
+      testTitle: test.title || '',
+      section: 'listening',
+      startedAt: new Date().toISOString(),
+      submittedAt: new Date().toISOString(),
+      rawScore: correctCount,
+      maxScore,
+      normalizedScore: normalizedRawScore,
+      estimatedBand: band,
       questionResults,
       userDisplayName: profile?.username || user.displayName || 'Anonymous Student',
       userPhoto: profile?.profilePhotoUrl || user.photoURL || ''
     };
     try {
       await setDoc(doc(db, 'attempts', attemptId), attempt);
-      
+      await markCompleted();
+
+
       if (fullTestComps?.reading) {
         router.push(`/reading/${fullTestComps.reading}?fullTestId=${fullTestId}&l=${attemptId}`);
       } else {
@@ -421,7 +437,31 @@ export default function TakingListeningTest() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-[#f8f9fa] flex flex-col font-sans selection:bg-blue-200">
-        <TestNavbar durationMinutes={30} title="Listening Practice" />
+        <TestNavbar durationMinutes={30} title="Listening Practice" saveStatus={saveStatus} />
+
+        {showRecoverPrompt && (
+          <div className="fixed inset-0 z-[100] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full text-center">
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Unfinished Test Found</h3>
+              <p className="text-sm text-slate-500 mb-6">You have a previous session for this test. Would you like to resume where you left off?</p>
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={() => handleRecover(false)}
+                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-colors"
+                >
+                  Restart Fresh
+                </button>
+                <button
+                  onClick={() => handleRecover(true)}
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 shadow-md shadow-blue-600/20 transition-all"
+                >
+                  Continue Test
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="bg-white border-b border-slate-200 sticky top-[60px] z-40 w-full px-6 py-2.5 shadow-sm">
           <div className="w-full max-w-6xl mx-auto flex flex-col gap-2">
             <div className="flex items-center justify-between">
@@ -482,7 +522,7 @@ export default function TakingListeningTest() {
               <button onClick={handleSubmit} disabled={submitting} className="bg-slate-900 hover:bg-black text-white font-bold text-sm px-8 py-3.5 rounded-xl shadow-lg shadow-slate-900/20 flex items-center gap-2 group transition-all duration-300 disabled:opacity-50 hover:-translate-y-0.5">
                 {submitting ? 'Submitting...' : (
                   <>
-                    {fullTestComps?.reading ? "Reading" : "Submit Test"} 
+                    {fullTestComps?.reading ? "Reading" : "Submit Test"}
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
