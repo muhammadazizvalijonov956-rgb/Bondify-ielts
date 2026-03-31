@@ -14,9 +14,8 @@ export default function AdminEventsPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'reading' | 'listening' | 'writing' | 'speaking'>('reading');
 
-  // Comprehensive Form State
+// Comprehensive Form State
   const [formData, setFormData] = useState<Partial<Event>>({
     id: '',
     title: '',
@@ -28,11 +27,6 @@ export default function AdminEventsPage() {
     endDate: new Date(Date.now() + 86400000).toISOString().slice(0, 16),
     duration: 60,
     status: 'upcoming',
-    questions: [],
-    reading: [],
-    listening: [],
-    writing: [],
-    speaking: [],
     participants: [],
     winners: []
   });
@@ -68,11 +62,10 @@ export default function AdminEventsPage() {
   const handleCancel = () => {
     setShowForm(false);
     setIsEditing(false);
-    setActiveTab('reading');
     setFormData({
       id: '', title: '', description: '', status: 'upcoming',
       prizePool: '100 Tokens', eligibility: 'public', duration: 60,
-      questions: [], reading: [], listening: [], writing: [], speaking: [], bannerImageUrl: '',
+      bannerImageUrl: '',
       startDate: new Date().toISOString().slice(0, 16),
       endDate: new Date(Date.now() + 86400000).toISOString().slice(0, 16)
     });
@@ -88,12 +81,7 @@ export default function AdminEventsPage() {
         createdAt: isEditing ? (formData.createdAt || new Date().toISOString()) : new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         participants: formData.participants || [],
-        winners: formData.winners || [],
-        questions: formData.questions || [],
-        reading: formData.reading || [],
-        listening: formData.listening || [],
-        writing: formData.writing || [],
-        speaking: formData.speaking || []
+        winners: formData.winners || []
       };
 
       await setDoc(doc(db, 'events', formData.id), eventToSave);
@@ -116,30 +104,7 @@ export default function AdminEventsPage() {
     }
   };
 
-  // Question Management
-  const addQuestion = (section: 'reading' | 'listening' | 'writing' | 'speaking') => {
-    const list = formData[section] || [];
-    const newQ = {
-      id: list.length + 1,
-      text: '',
-      type: 'multiple_choice',
-      options: ['', '', '', ''],
-      correctAnswer: ''
-    };
-    setFormData({ ...formData, [section]: [...list, newQ] });
-  };
 
-  const removeQuestion = (section: 'reading' | 'listening' | 'writing' | 'speaking', index: number) => {
-    const list = [...(formData[section] || [])];
-    list.splice(index, 1);
-    setFormData({ ...formData, [section]: list });
-  };
-
-  const updateQuestion = (section: 'reading' | 'listening' | 'writing' | 'speaking', index: number, field: string, value: any) => {
-    const list = [...(formData[section] || [])];
-    list[index] = { ...list[index], [field]: value };
-    setFormData({ ...formData, [section]: list });
-  };
   return (
     <div className="p-8 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-8 border-b border-slate-200 pb-6">
@@ -201,84 +166,7 @@ export default function AdminEventsPage() {
                 </div>
               </div>
 
-              {/* Sections Builder */}
-              <div className="bg-white p-6 rounded-3xl border border-slate-200">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <HelpCircle className="w-4 h-4" /> Event Sections
-                  </h3>
-                </div>
-
-                {/* Tabs */}
-                <div className="flex gap-2 mb-6 border-b border-slate-100 pb-4 overflow-x-auto custom-scrollbar">
-                  {(['reading', 'listening', 'writing', 'speaking'] as const).map(tab => (
-                    <button
-                      key={tab}
-                      type="button"
-                      onClick={() => setActiveTab(tab)}
-                      className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-primary-600 text-white shadow-md shadow-primary-500/20' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
-                    >
-                      {tab}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex items-center justify-between mb-6">
-                  <h4 className="text-xs font-bold text-slate-600 uppercase tracking-widest">{activeTab} Questions</h4>
-                  <button type="button" onClick={() => addQuestion(activeTab)} className="text-primary-600 font-bold text-xs bg-primary-50 px-4 py-2 rounded-xl hover:bg-primary-100 transition-colors">
-                    + Add Question
-                  </button>
-                </div>
-
-                <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar lg:min-h-[300px]">
-                  {!(formData[activeTab]?.length) ? (
-                    <div className="text-center py-12 border-2 border-dashed border-slate-100 rounded-2xl text-slate-400 text-sm font-bold bg-slate-50/30 w-full flex flex-col items-center justify-center">
-                      <HelpCircle className="w-8 h-8 mb-3 text-slate-200" />
-                      No questions configured for {activeTab}.
-                    </div>
-                  ) : (
-                    formData[activeTab]?.map((q, idx) => (
-                      <div key={idx} className="p-6 bg-slate-50 rounded-2xl border border-slate-100 relative group animate-in slide-in-from-bottom-2 fade-in duration-200">
-                        <button type="button" onClick={() => removeQuestion(activeTab, idx)} className="absolute top-4 right-4 text-slate-300 hover:text-rose-500 transition-colors bg-white hover:bg-rose-50 p-1.5 rounded-lg shadow-sm border border-slate-100">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                        <div className="grid gap-5">
-                          <div className="flex items-center gap-4 pr-12">
-                            <span className="w-8 h-8 shrink-0 rounded-full bg-slate-900 text-white flex items-center justify-center font-black text-xs shadow-md shadow-slate-900/20">{idx + 1}</span>
-                            <input required type="text" value={q.text || ''} onChange={e => updateQuestion(activeTab, idx, 'text', e.target.value)} placeholder={`Enter ${activeTab} question text...`} className="flex-1 bg-transparent border-b-2 border-slate-200 focus:border-primary-500 py-2 outline-none font-bold text-slate-800 text-lg transition-colors placeholder:text-slate-300" />
-                          </div>
-
-                          {activeTab !== 'writing' && activeTab !== 'speaking' && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2 pl-12">
-                              {q.options?.map((opt: string, oi: number) => (
-                                <div key={oi} className="flex gap-2 items-center bg-white p-1 pr-2 rounded-xl border border-slate-200 focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-500/10 transition-all">
-                                  <span className="w-6 h-6 shrink-0 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-500 ml-1">{String.fromCharCode(65 + oi)}</span>
-                                  <input required type="text" value={opt || ''} onChange={e => {
-                                    let opts = q.options ? [...q.options] : ['', '', '', ''];
-                                    opts[oi] = e.target.value;
-                                    updateQuestion(activeTab, idx, 'options', opts);
-                                  }} placeholder={`Option ${String.fromCharCode(65 + oi)}`} className="flex-1 px-2 py-2 bg-transparent text-sm outline-none font-medium text-slate-700 placeholder:text-slate-300" />
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          <div className="mt-2 pl-12 flex items-center justify-between border-t border-slate-100 pt-4">
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                              <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> Correct Answer
-                            </label>
-                            {activeTab !== 'writing' && activeTab !== 'speaking' ? (
-                              <input required maxLength={1} type="text" value={q.correctAnswer || ''} onChange={e => updateQuestion(activeTab, idx, 'correctAnswer', e.target.value.toUpperCase())} placeholder="A" className="w-16 h-12 text-center bg-emerald-50 border-2 border-emerald-100 rounded-xl font-black text-emerald-600 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20 outline-none transition-all placeholder:text-emerald-200 text-lg uppercase shadow-inner" />
-                            ) : (
-                              <textarea value={q.correctAnswer || ''} onChange={e => updateQuestion(activeTab, idx, 'correctAnswer', e.target.value)} placeholder="Guidelines / Suggested answer" className="flex-1 ml-4 h-12 bg-emerald-50 border-2 border-emerald-100 rounded-xl font-medium text-emerald-700 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20 outline-none transition-all placeholder:text-emerald-200 text-sm px-4 py-3" />
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
+              {/* Event tests are now managed directly from Settings -> Tests panel. */}
             </div>
 
             <div className="space-y-8">
@@ -392,8 +280,8 @@ export default function AdminEventsPage() {
                   <div className="text-lg font-black text-emerald-600 tracking-tight">{event.prizePool}</div>
                 </div>
                 <div>
-                  <div className="text-[10px] font-black text-slate-400 uppercase mb-2 flex items-center gap-1.5"><HelpCircle className="w-3.5 h-3.5" /> Questions</div>
-                  <div className="text-lg font-black text-slate-800 tracking-tight">{(event.reading?.length || 0) + (event.listening?.length || 0) + (event.writing?.length || 0) + (event.speaking?.length || 0) || (event.questions?.length || 0)} ITEMS</div>
+                  <div className="text-[10px] font-black text-slate-400 uppercase mb-2 flex items-center gap-1.5"><HelpCircle className="w-3.5 h-3.5" /> Tests Assigned</div>
+                  <div className="text-lg font-black text-slate-800 tracking-tight">MANAGE IN TESTS</div>
                 </div>
                 <div className="col-span-2 pt-2">
                   <div className="text-[10px] font-black text-slate-400 uppercase mb-2 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Schedule</div>
