@@ -291,7 +291,27 @@ export default function ResultPage({ params }: { params: { id: string } }) {
         const attemptRef = doc(db, 'attempts', params.id);
         const snap = await getDoc(attemptRef);
         if (snap.exists()) {
-          setAttempt(snap.data());
+          const attemptData = snap.data();
+          if (!attemptData.progressStored) {
+            try {
+              const res = await fetch('/api/evaluate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ attemptId: params.id })
+              });
+              if (res.ok) {
+                const data = await res.json();
+                if (data.attempt) {
+                  setAttempt(data.attempt);
+                  setLoading(false);
+                  return;
+                }
+              }
+            } catch (err) {
+              console.error("Evaluation error", err);
+            }
+          }
+          setAttempt(attemptData);
         }
       } catch (err) {
         console.error("Failed to fetch result", err);
