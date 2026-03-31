@@ -11,7 +11,8 @@ import {
   Settings,
   LogOut,
   ShieldCheck,
-  Bell
+  Bell,
+  Code2
 } from 'lucide-react';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { auth } from '@/lib/firebase/config';
@@ -23,6 +24,7 @@ const navItems = [
   { name: 'Events', href: '/admin/events', icon: CalendarDays },
   { name: 'Leaderboard', href: '/admin/leaderboard', icon: Trophy },
   { name: 'Updates', href: '/admin/updates', icon: Bell },
+  { name: 'Learning Manager', href: '/admin/learn', icon: Code2 },
   { name: 'Platform Settings', href: '/admin/settings', icon: Settings },
 ];
 
