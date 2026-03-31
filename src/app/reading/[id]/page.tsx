@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { useAutoSave } from '@/lib/hooks/useAutoSave';
 import { ArrowRight } from 'lucide-react';
 import TestNavbar from '@/components/TestNavbar';
 import SelectionHighlighter from '@/components/SelectionHighlighter';
@@ -264,12 +265,28 @@ function renderItems(
 export default function TakingReadingTest() {
   const [test, setTest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [activePartIndex, setActivePartIndex] = useState(0);
+  
   const router = useRouter();
   const params = useParams();
+  const testId = params.id as string;
   const { user, profile } = useAuth();
+  
+  const {
+    answers,
+    updateAnswer: handleAnswer,
+    activePartIndex,
+    updateActivePart: setActivePartIndex,
+    saveStatus,
+    showRecoverPrompt,
+    handleRecover,
+    markCompleted
+  } = useAutoSave({
+    testId,
+    userId: user?.uid,
+    section: 'reading'
+  });
+  
   const searchParams = useSearchParams();
   const fullTestId = searchParams.get('fullTestId');
   const [fullTestComps, setFullTestComps] = useState<any>(null);
@@ -301,10 +318,9 @@ export default function TakingReadingTest() {
 
   useEffect(() => {
     async function fetchTest() {
-      const id = params.id as string;
-      if (!id) return;
+      if (!testId) return;
       try {
-        const snap = await getDoc(doc(db, 'tests', id));
+        const snap = await getDoc(doc(db, 'tests', testId));
         if (snap.exists()) setTest({ id: snap.id, ...snap.data() });
       } catch (err) {
         console.error("Error fetching test:", err);
@@ -313,9 +329,8 @@ export default function TakingReadingTest() {
       }
     }
     fetchTest();
-  }, [params.id]);
+  }, [testId]);
 
-  const handleAnswer = (qId: string, value: string) => { setAnswers(prev => ({ ...prev, [qId]: value })); };
 
   const handleSubmit = async () => {
     if (!user || !test) return;
@@ -375,6 +390,7 @@ export default function TakingReadingTest() {
 
     try {
       await setDoc(doc(db, 'attempts', attemptId), attempt);
+      await markCompleted();
 
       if (fullTestComps?.writing) {
         let url = `/writing/${fullTestComps.writing}?fullTestId=${fullTestId}&r=${attemptId}`;
@@ -407,7 +423,30 @@ export default function TakingReadingTest() {
   return (
     <ProtectedRoute>
       <div className="h-screen bg-[#f1f2f3] flex flex-col font-sans selection:bg-emerald-200 overflow-hidden">
-        <TestNavbar durationMinutes={60} title="Reading Practice" />
+        <TestNavbar durationMinutes={60} title="Reading Practice" saveStatus={saveStatus} />
+
+        {showRecoverPrompt && (
+          <div className="fixed inset-0 z-[100] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full text-center">
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Unfinished Test Found</h3>
+              <p className="text-sm text-slate-500 mb-6">You have a previous session for this test. Would you like to resume where you left off?</p>
+              <div className="flex gap-3 justify-center">
+                <button 
+                  onClick={() => handleRecover(false)} 
+                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-colors"
+                >
+                  Restart Fresh
+                </button>
+                <button 
+                  onClick={() => handleRecover(true)} 
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 shadow-md shadow-blue-600/20 transition-all"
+                >
+                  Continue Test
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Sticky Sub-header */}
         <div className="bg-white border-b border-slate-200 px-6 py-2.5 shadow-sm shrink-0">
