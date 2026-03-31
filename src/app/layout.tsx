@@ -4,6 +4,7 @@ import './globals.css';
 import { AuthProvider } from '@/lib/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
 import LockdownManager from '@/components/LockdownManager';
+import UpdatePopup from '@/components/UpdatePopup';
 import { Suspense } from 'react';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -27,6 +28,7 @@ export default function RootLayout({
         <AuthProvider>
           <Suspense fallback={null}>
             <LockdownManager />
+            <UpdatePopup />
           </Suspense>
           <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
             <Navbar />
