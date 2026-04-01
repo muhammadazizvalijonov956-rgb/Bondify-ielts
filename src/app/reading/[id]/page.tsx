@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { db } from '@/lib/firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -262,7 +262,7 @@ function renderItems(
   });
 }
 
-export default function TakingReadingTest() {
+function ReadingTestContent() {
   const [test, setTest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -635,5 +635,17 @@ export default function TakingReadingTest() {
         />
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function TakingReadingTest() {
+  return (
+    <Suspense fallback={
+       <div className="min-h-screen flex items-center justify-center font-bold text-slate-500">
+         Loading Reading Test...
+       </div>
+    }>
+      <ReadingTestContent />
+    </Suspense>
   );
 }
