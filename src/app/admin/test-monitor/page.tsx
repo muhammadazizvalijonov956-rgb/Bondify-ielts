@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase/config';
 import { collection, query, orderBy, limit, getDocs, updateDoc, doc } from 'firebase/firestore';
-import { Loader2, Search, Filter, Eye, Activity, RotateCcw, Clock, CheckCircle2, AlertTriangle, X } from 'lucide-react';
+import { Loader2, Search, Filter, Eye, Activity, RotateCcw, Clock, CheckCircle2, AlertTriangle, X, Plus } from 'lucide-react';
 import Link from 'next/link';
 
 interface MonitorRow {
@@ -66,11 +66,11 @@ export default function TestMonitorPage() {
         const status = isRecent(updatedDate, 15) ? 'In Progress' : 'Interrupted';
         rows.push({
           id: d.id,
-          studentName: item.user_id?.substring(0, 8) || 'Unknown', // Ideally we fetch users or store username in session
+          studentName: item.student_name || item.user_id?.substring(0, 8) || 'Unknown User',
           testName: item.test_id || 'Unknown Test',
           testId: item.test_id,
           status,
-          currentSection: item.section || 'Unknown',
+          currentSection: item.section || 'Part 1',
           lastSavedDate: updatedDate,
           answers: item.answers || {},
           docType: 'session',
@@ -136,9 +136,14 @@ export default function TestMonitorPage() {
           <Activity className="w-8 h-8 text-primary-500" />
           Student Test Monitor
         </h1>
-        <p className="text-slate-500 font-medium mt-2">
-          Monitor all ongoing student tests, intervene in lost sessions, and track real-time progress.
-        </p>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-2">
+            <p className="text-slate-500 font-medium">
+                Monitor all ongoing student tests, intervene in lost sessions, and track real-time progress.
+            </p>
+            <Link href="/admin/sessions/create" className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-black px-6 py-3 rounded-xl transition-all shadow-lg active:scale-95">
+                <Plus className="w-5 h-5" /> Create New Session
+            </Link>
+        </div>
       </div>
 
       {/* Filters */}
@@ -281,8 +286,9 @@ export default function TestMonitorPage() {
                 <div className="p-5 bg-slate-50 border border-slate-100 rounded-2xl">
                   <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Student Context</span>
                   <div className="mt-3 font-semibold text-slate-700 text-sm">
-                    <p className="mb-2"><span className="text-slate-400 mr-2">ID:</span> {viewSession.rawRecord.user_id}</p>
-                    <p><span className="text-slate-400 mr-2">Name:</span> <span className="text-slate-900 font-bold">{viewSession.studentName}</span></p>
+            <p className="mb-2"><span className="text-slate-400 mr-2">Organization:</span> <span className="text-primary-600 font-bold">{viewSession.rawRecord.organization || 'Bondify'}</span></p>
+                    <p className="mb-2"><span className="text-slate-400 mr-2">Name:</span> <span className="text-slate-900 font-bold">{viewSession.studentName}</span></p>
+                    <p><span className="text-slate-400 mr-2">Email:</span> {viewSession.rawRecord.student_email || 'Not Provided'}</p>
                   </div>
                 </div>
 
