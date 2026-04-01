@@ -13,6 +13,7 @@ function RegisterForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
+  const [staffAccessEmail, setStaffAccessEmail] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -24,6 +25,13 @@ function RegisterForm() {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    // Step 1: Registration access gate enforcement
+    if (staffAccessEmail !== 'infoadc@gmail.com') {
+      setError('This registration path is for ADC staff only. Please enter the correct Staff Access Email.');
+      setLoading(false);
+      return;
+    }
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -41,6 +49,7 @@ function RegisterForm() {
         email,
         phone,
         username: baseUsername,
+        staff_access_email: staffAccessEmail,
         profilePhotoUrl: null,
         role: 'user',
         accountTier: 'free',
@@ -120,8 +129,20 @@ function RegisterForm() {
               onChange={(e) => setFullName(e.target.value)}
             />
           </div>
+           <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1 italic">Staff Access Email</label>
+            <input
+              id="staff-access-email"
+              type="email"
+              required
+              placeholder="Required for ADC Staff registration"
+              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all bg-emerald-50/30 hover:bg-white"
+              value={staffAccessEmail}
+              onChange={(e) => setStaffAccessEmail(e.target.value)}
+            />
+          </div>
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Email</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Login Email <span className="text-slate-400 font-normal">(Ownership)</span></label>
             <input
               id="register-email"
               type="email"
