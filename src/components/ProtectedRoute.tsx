@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/AuthContext';
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -9,19 +9,22 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   const router = useRouter();
   const pathname = usePathname();
 
+  const searchParams = useSearchParams();
+  const sessionId = searchParams.get('session');
+
   useEffect(() => {
     if (!loading) {
-      if (!user) {
-        // Not logged in, redirect to login with 'next' param
+      if (!user && !sessionId) {
+        // Not logged in and no active session proxy
         router.push(`/login?next=${encodeURIComponent(pathname)}`);
-      } else if (!user.emailVerified) {
+      } else if (user && !user.emailVerified) {
         // Logged in but not verified
         router.push(`/verify-email?next=${encodeURIComponent(pathname)}`);
       }
     }
-  }, [user, loading, router, pathname]);
+  }, [user, loading, router, pathname, sessionId]);
 
-  if (loading || !user || !user.emailVerified) {
+  if (loading || (!user && !sessionId) || (user && !user.emailVerified)) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
