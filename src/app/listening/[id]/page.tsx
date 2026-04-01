@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { db } from '@/lib/firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -293,7 +293,7 @@ function renderOldQuestion(q: any, answers: Record<string, string>, onAnswer: (i
   );
 }
 
-export default function TakingListeningTest() {
+function ListeningTestContent() {
   const [test, setTest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -616,5 +616,17 @@ export default function TakingListeningTest() {
         )}
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function TakingListeningTest() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center font-bold text-slate-500">
+        Loading Test Environment...
+      </div>
+    }>
+      <ListeningTestContent />
+    </Suspense>
   );
 }
