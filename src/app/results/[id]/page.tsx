@@ -283,6 +283,7 @@ export default function ResultPage({ params }: { params: { id: string } }) {
   const [loading, setLoading] = useState(true);
   const [unlocking, setUnlocking] = useState(false);
   const [showAnswerKey, setShowAnswerKey] = useState(false);
+  const [scoreEmail, setScoreEmail] = useState('');
   const { user, profile } = useAuth();
 
   useEffect(() => {
@@ -322,7 +323,7 @@ export default function ResultPage({ params }: { params: { id: string } }) {
     fetchResult();
   }, [params.id]);
 
-  const buildEmailPayload = (attempt: any, user: any, profile: any) => {
+  const buildEmailPayload = (attempt: any, user: any, profile: any, targetEmail: string) => {
     // Plain text generation 
     const userName = profile.username || 'Student';
     const isFull = attempt.section === 'full-test' || !!attempt.fullTestId || attempt.testTitle?.toLowerCase().includes('full');
@@ -456,7 +457,7 @@ export default function ResultPage({ params }: { params: { id: string } }) {
       </html>
     `;
     return {
-      to: user.email,
+      to: targetEmail || user.email || '',
       subject: `Bondify: Your IELTS ${testType} Results Available`,
       text: textBody,
       html: htmlBody,
@@ -501,8 +502,8 @@ export default function ResultPage({ params }: { params: { id: string } }) {
       setAttempt({ ...attempt, resultUnlocked: true });
 
       // Email Result System
-      if (user.email) {
-        const payload = buildEmailPayload(attempt, user, profile);
+      if (user.email || scoreEmail) {
+        const payload = buildEmailPayload(attempt, user, profile, (scoreEmail || user.email) as string);
         fetch('/api/send-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -548,14 +549,14 @@ export default function ResultPage({ params }: { params: { id: string } }) {
       });
 
       // Email Result System
-      if (user.email) {
-        const payload = buildEmailPayload(attempt, user, profile);
+      if (user.email || scoreEmail) {
+        const payload = buildEmailPayload(attempt, user, profile, (scoreEmail || user.email) as string);
         await fetch('/api/send-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-        alert("Results sent to your email!");
+        alert(`Results sent to ${scoreEmail || user.email}!`);
       }
     } catch (err) {
       console.error("Failed to send email", err);
@@ -739,6 +740,34 @@ export default function ResultPage({ params }: { params: { id: string } }) {
                   {attempt.fullTestId ? 'Continue Test' : 'Try Again'}
                 </Link>
               </div>
+
+              {/* Score Delivery Email Section */}
+              {isUnlocked && (
+                <div className="mt-8 pt-8 border-t border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="bg-blue-50/50 rounded-2xl p-6 border border-blue-100/50">
+                    <label className="block text-xs font-black uppercase tracking-widest text-blue-600 mb-3">Email to receive score</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="email"
+                        placeholder="example@student.com"
+                        className="flex-1 px-4 py-3 rounded-xl border border-blue-200 bg-white text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder-blue-300"
+                        value={scoreEmail}
+                        onChange={(e) => setScoreEmail(e.target.value)}
+                      />
+                      <button
+                        onClick={handleSendEmail}
+                        disabled={unlocking}
+                        className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 whitespace-nowrap shadow-lg shadow-blue-500/20"
+                      >
+                        {unlocking ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Send className="w-4 h-4" /> Send Result</>}
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-blue-400 font-medium mt-3 italic">
+                      Results will be sent instantly. This does not change your account ownership.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
