@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { db } from '@/lib/firebase/config';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, updateDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
@@ -10,7 +10,7 @@ import { useAutoSave } from '@/lib/hooks/useAutoSave';
 import { Mic, ArrowRight, Video, ChevronLeft, ChevronRight, Send, Upload, Clock, User, Sparkles, Users, Loader2 } from 'lucide-react';
 import TestNavbar from '@/components/TestNavbar';
 
-export default function TakingSpeakingTest() {
+function SpeakingTestContent() {
   const [test, setTest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -49,8 +49,6 @@ export default function TakingSpeakingTest() {
   const matchTimeoutRef = useRef<any>(null);
   const queueDocRef = useRef<any>(null);
   const unsubscribeRef = useRef<any>(null);
-
-
 
   useEffect(() => {
     async function fetchTest() {
@@ -614,5 +612,17 @@ export default function TakingSpeakingTest() {
         `}</style>
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function TakingSpeakingTest() {
+  return (
+    <Suspense fallback={
+       <div className="min-h-screen flex items-center justify-center font-bold text-slate-500 italic">
+         Initializing Speaking Module...
+       </div>
+    }>
+      <SpeakingTestContent />
+    </Suspense>
   );
 }
