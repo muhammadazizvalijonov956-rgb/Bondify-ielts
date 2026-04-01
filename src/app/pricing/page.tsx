@@ -54,13 +54,10 @@ export default function PricingPage() {
       if (!presignResponse.ok) throw new Error('Failed to get upload URL');
       const { uploadUrl, publicUrl } = await presignResponse.json();
 
-      // 2. Upload to R2 directly from client
+      // 2. Upload to R2 directly from client using the presigned URL
       const uploadResult = await fetch(uploadUrl, {
         method: 'PUT',
         body: file,
-        headers: {
-          'Content-Type': file.type
-        }
       });
 
       if (!uploadResult.ok) throw new Error('Failed to upload to Cloudflare R2');
