@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import ProtectedRoute from '@/components/ProtectedRoute';
+import { useEffect, useState, Suspense } from 'react';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { db } from '@/lib/firebase/config';
 import { doc, getDoc, updateDoc, increment, runTransaction, serverTimestamp, collection } from 'firebase/firestore';
@@ -9,8 +9,11 @@ import Link from 'next/link';
 import {
   Lock, Unlock, Users, Zap, CheckCircle, XCircle,
   BarChart2, BookOpen, Lightbulb, ChevronDown, ChevronUp,
-  TrendingUp, Award, Target, Mic, Star, Send
+  TrendingUp, Award, Target, Mic, Star, Send,
+  ChevronRight, FileText, Globe, Clock, Sparkles, Share2, Mail, Download, BrainCircuit, Activity, GraduationCap, Loader2
 } from 'lucide-react';
+import Navbar from '@/components/Navbar';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 // ── High-level vocabulary to highlight ──────────────────────────────
 const HIGH_LEVEL_WORDS = new Set([
@@ -278,7 +281,7 @@ const BADGE_MAP: Record<string, string> = {
   rose: 'bg-rose-50 border-rose-200 text-rose-700',
 };
 
-export default function ResultPage({ params }: { params: { id: string } }) {
+function ResultsContent({ params }: { params: { id: string } }) {
   const [attempt, setAttempt] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [unlocking, setUnlocking] = useState(false);
@@ -323,59 +326,62 @@ export default function ResultPage({ params }: { params: { id: string } }) {
     fetchResult();
   }, [params.id]);
 
-  const buildEmailPayload = (attempt: any, user: any, profile: any, targetEmail: string) => {
+  const buildEmailPayload = (attemptData: any, user: any, profile: any, targetEmail: string) => {
     // Plain text generation 
-    const userName = profile.username || 'Student';
-    const isFull = attempt.section === 'full-test' || !!attempt.fullTestId || attempt.testTitle?.toLowerCase().includes('full');
-    const testType = isFull ? 'Full Test' : 'Section Practice';
+    const userName = profile?.username || 'Student';
+    const isFull = attemptData.section === 'full-test' || !!attemptData.fullTestId || attemptData.testTitle?.toLowerCase().includes('full');
+    const testTypeLabel = isFull ? 'Full Test' : (attemptData.section ? attemptData.section.charAt(0).toUpperCase() + attemptData.section.slice(1) : 'Practice');
 
-    let textBody = `Hi ${userName},\n\nHere are the results of your recent ${testType}:\n\n`;
-    if (attempt.section === 'full-test') {
-      textBody += `Overall Band: ${attempt.estimatedBand}\nListening: ${attempt.listeningBand}\nReading: ${attempt.readingBand}\nWriting: ${attempt.writingBand}\nSpeaking: ${attempt.speakingBand}\n`;
+    const org = attemptData.organization || "Bondify";
+    const sender = org === "ADC" ? "ADC Testing Center" : "Bondify";
+
+    let textBody = `Hi ${userName},\n\nHere are the results of your recent ${testTypeLabel}:\n\n`;
+    if (attemptData.section === 'full-test') {
+      textBody += `Overall Band: ${attemptData.estimatedBand}\nListening: ${attemptData.listeningBand}\nReading: ${attemptData.readingBand}\nWriting: ${attemptData.writingBand}\nSpeaking: ${attemptData.speakingBand}\n`;
     } else {
-      textBody += `Section: ${attempt.section}\nBand Score: ${attempt.estimatedBand}\n`;
-      if (['listening', 'reading'].includes(attempt.section)) {
-        textBody += `Correct Answers: ${attempt.rawScore}\n`;
+      textBody += `Section: ${attemptData.section}\nBand Score: ${attemptData.estimatedBand}\n`;
+      if (['listening', 'reading'].includes(attemptData.section)) {
+        textBody += `Correct Answers: ${attemptData.rawScore}\n`;
       }
     }
-    textBody += `\nKeep practicing on Bondify!\n`;
+    textBody += `\nKeep practicing on ${sender}!\n`;
 
     // Professional HTML generation
-    const overallScore = attempt.estimatedBand !== undefined ? attempt.estimatedBand.toFixed(1) : '0.0';
+    const overallScore = typeof attemptData.estimatedBand === 'number' ? attemptData.estimatedBand.toFixed(1) : (parseFloat(attemptData.estimatedBand) || 0).toFixed(1);
 
     let statsHtml = '';
-    if (attempt.section === 'full-test') {
+    if (attemptData.section === 'full-test') {
       statsHtml = `
         <div style="display: flex; gap: 12px; justify-content: space-between; margin-bottom: 24px;">
           <div style="text-align: center; flex: 1; padding: 12px; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
             <p style="margin: 0; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">L</p>
-            <p style="margin: 4px 0 0; font-size: 18px; font-weight: 800; color: #0f172a;">${attempt.listeningBand ?? 0}</p>
+            <p style="margin: 4px 0 0; font-size: 18px; font-weight: 800; color: #0f172a;">${attemptData.listeningBand ?? 0}</p>
           </div>
           <div style="text-align: center; flex: 1; padding: 12px; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
             <p style="margin: 0; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">R</p>
-            <p style="margin: 4px 0 0; font-size: 18px; font-weight: 800; color: #0f172a;">${attempt.readingBand ?? 0}</p>
+            <p style="margin: 4px 0 0; font-size: 18px; font-weight: 800; color: #0f172a;">${attemptData.readingBand ?? 0}</p>
           </div>
           <div style="text-align: center; flex: 1; padding: 12px; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
             <p style="margin: 0; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">W</p>
-            <p style="margin: 4px 0 0; font-size: 18px; font-weight: 800; color: #0f172a;">${attempt.writingBand ?? 0}</p>
+            <p style="margin: 4px 0 0; font-size: 18px; font-weight: 800; color: #0f172a;">${attemptData.writingBand ?? 0}</p>
           </div>
           <div style="text-align: center; flex: 1; padding: 12px; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
             <p style="margin: 0; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">S</p>
-            <p style="margin: 4px 0 0; font-size: 18px; font-weight: 800; color: #0f172a;">${attempt.speakingBand ?? 0}</p>
+            <p style="margin: 4px 0 0; font-size: 18px; font-weight: 800; color: #0f172a;">${attemptData.speakingBand ?? 0}</p>
           </div>
         </div>
       `;
     } else {
       statsHtml = `
         <div style="display: flex; gap: 12px; justify-content: center; margin-bottom: 24px;">
-          ${['listening', 'reading'].includes(attempt.section) ? `
+          ${['listening', 'reading'].includes(attemptData.section) ? `
           <div style="text-align: center; padding: 12px 24px; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; width: 80px;">
             <p style="margin: 0; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Correct</p>
-            <p style="margin: 4px 0 0; font-size: 18px; font-weight: 800; color: #0f172a;">${attempt.rawScore}</p>
+            <p style="margin: 4px 0 0; font-size: 18px; font-weight: 800; color: #0f172a;">${attemptData.rawScore}</p>
           </div>` : ''}
           <div style="text-align: center; padding: 12px 24px; background-color: #eff6ff; border-radius: 12px; border: 1px solid #bfdbfe; width: 100px;">
             <p style="margin: 0; font-size: 11px; font-weight: 700; color: #1d4ed8; text-transform: uppercase; letter-spacing: 0.05em;">Section</p>
-            <p style="margin: 4px 0 0; font-size: 18px; font-weight: 800; color: #1e3a8a; text-transform: capitalize;">${attempt.section}</p>
+            <p style="margin: 4px 0 0; font-size: 18px; font-weight: 800; color: #1e3a8a; text-transform: capitalize;">${attemptData.section}</p>
           </div>
         </div>
       `;
@@ -398,7 +404,7 @@ export default function ResultPage({ params }: { params: { id: string } }) {
                 <tr>
                   <td style="background: linear-gradient(135deg, #2563eb, #4f46e5); padding: 40px 30px; text-align: center;">
                     <img src="https://ui-avatars.com/api/?name=Bondify&background=ffffff&color=2563eb&rounded=true&bold=true" width="64" height="64" style="border-radius: 50%; border: 3px solid rgba(255,255,255,0.2);" />
-                    <h1 style="color: #ffffff; margin: 16px 0 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em;">Bondify</h1>
+                    <h1 style="color: #ffffff; margin: 16px 0 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em;">${sender}</h1>
                     <p style="color: rgba(255,255,255,0.85); margin: 6px 0 0; font-size: 15px; font-weight: 500;">Your Official Practice Result</p>
                   </td>
                 </tr>
@@ -407,7 +413,7 @@ export default function ResultPage({ params }: { params: { id: string } }) {
                 <tr>
                   <td style="padding: 40px 30px;">
                     <p style="margin: 0 0 12px; font-size: 18px; color: #1e293b; font-weight: 700;">Hi ${userName},</p>
-                    <p style="margin: 0 0 32px; font-size: 16px; color: #475569; line-height: 1.6;">Your recent <strong>${testType}</strong> has been fully evaluated. Here is your structured breakdown:</p>
+                    <p style="margin: 0 0 32px; font-size: 16px; color: #475569; line-height: 1.6;">Your recent <strong>${testTypeLabel}</strong> has been fully evaluated. Here is your structured breakdown:</p>
                     
                     <!-- Score Ring -->
                     <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 32px;">
@@ -435,18 +441,18 @@ export default function ResultPage({ params }: { params: { id: string } }) {
                     <table width="100%" border="0" cellspacing="0" cellpadding="0">
                       <tr>
                         <td align="center">
-                          <a href="${window.location.href}" style="background-color: #0f172a; color: #ffffff; padding: 18px 36px; text-decoration: none; border-radius: 14px; font-weight: 700; font-size: 16px; display: inline-block; box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.2), 0 4px 6px -2px rgba(15, 23, 42, 0.1); width: 80%; text-align: center;">Review Answer & Feedback</a>
+                          <a href="${typeof window !== 'undefined' ? window.location.origin : '#'}" style="display: inline-block; padding: 16px 32px; background-color: #2563eb; color: #ffffff; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">View Full Report</a>
                         </td>
                       </tr>
                     </table>
+
                   </td>
                 </tr>
                 
                 <!-- Footer -->
                 <tr>
-                  <td style="background-color: #f8fafc; padding: 30px; border-top: 1px solid #e2e8f0; text-align: center;">
-                    <p style="margin: 0; font-size: 14px; color: #64748b; font-weight: 600;">Keep pushing forward!</p>
-                    <p style="margin: 8px 0 0; font-size: 12px; color: #94a3b8;">© 2026 Bondify · IELTS Education</p>
+                  <td style="padding: 30px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; text-align: center;">
+                    <p style="margin: 0; font-size: 13px; color: #94a3b8;">&copy; ${new Date().getFullYear()} ${sender}. All rights reserved.</p>
                   </td>
                 </tr>
               </table>
@@ -456,9 +462,10 @@ export default function ResultPage({ params }: { params: { id: string } }) {
       </body>
       </html>
     `;
+
     return {
-      to: targetEmail || user.email || '',
-      subject: `Bondify: Your IELTS ${testType} Results Available`,
+      to: targetEmail || user?.email || '',
+      subject: `${sender}: Your IELTS ${testTypeLabel} Results Available`,
       text: textBody,
       html: htmlBody,
       url: window.location.href,
@@ -466,12 +473,12 @@ export default function ResultPage({ params }: { params: { id: string } }) {
   };
 
   const handleUnlock = async () => {
-    if (!profile || !attempt || !user) return;
+    if (!profile || !attempt) return;
     if ((profile.tokenBalance ?? 0) < 2) {
       alert("Not enough tokens. Please purchase more.");
       return;
     }
-    
+
     setUnlocking(true);
     try {
       await runTransaction(db, async (transaction) => {
@@ -484,13 +491,8 @@ export default function ResultPage({ params }: { params: { id: string } }) {
         const currentBalance = userSnap.data().tokenBalance ?? 0;
         if (currentBalance < 2) throw "Insufficient balance";
 
-        // 1. Deduct tokens
         transaction.update(userRef, { tokenBalance: increment(-2) });
-
-        // 2. Unlock attempt
         transaction.update(attemptRef, { resultUnlocked: true });
-
-        // 3. Log transaction
         transaction.set(logsRef, {
           userId: profile.uid,
           changeAmount: -2,
@@ -501,9 +503,9 @@ export default function ResultPage({ params }: { params: { id: string } }) {
 
       setAttempt({ ...attempt, resultUnlocked: true });
 
-      // Email Result System
-      if (user.email || scoreEmail) {
-        const payload = buildEmailPayload(attempt, user, profile, (scoreEmail || user.email) as string);
+      const emailToUse = scoreEmail || user?.email || attempt.userEmail;
+      if (emailToUse) {
+        const payload = buildEmailPayload(attempt, user, profile, emailToUse);
         fetch('/api/send-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -518,9 +520,8 @@ export default function ResultPage({ params }: { params: { id: string } }) {
     setUnlocking(false);
   };
 
-
   const handleSendEmail = async () => {
-    if (!profile || !attempt || !user) return;
+    if (!profile || !attempt) return;
     if ((profile.tokenBalance ?? 0) < 2) {
       alert("Not enough tokens. Please purchase more.");
       return;
@@ -530,70 +531,31 @@ export default function ResultPage({ params }: { params: { id: string } }) {
       await runTransaction(db, async (transaction) => {
         const userRef = doc(db, 'users', profile.uid);
         const logsRef = doc(collection(db, 'token_logs'));
-
         const userSnap = await transaction.get(userRef);
         if (!userSnap.exists()) throw "User not found";
         const currentBalance = userSnap.data().tokenBalance ?? 0;
         if (currentBalance < 2) throw "Insufficient balance";
-
-        // 1. Deduct tokens
         transaction.update(userRef, { tokenBalance: increment(-2) });
-
-        // 2. Log transaction
-        transaction.set(logsRef, {
-          userId: profile.uid,
-          changeAmount: -2,
-          reason: `emailed result: ${attempt.id}`,
-          createdAt: serverTimestamp(),
-        });
+        transaction.set(logsRef, { userId: profile.uid, changeAmount: -2, reason: `emailed result: ${attempt.id}`, createdAt: serverTimestamp() });
       });
 
-      // Email Result System
-      if (user.email || scoreEmail) {
-        const payload = buildEmailPayload(attempt, user, profile, (scoreEmail || user.email) as string);
-        await fetch('/api/send-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        alert(`Results sent to ${scoreEmail || user.email}!`);
+      const emailToUse = scoreEmail || user?.email || attempt.userEmail;
+      if (emailToUse) {
+        const payload = buildEmailPayload(attempt, user, profile, emailToUse);
+        await fetch('/api/send-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        alert(`Results sent to ${emailToUse}!`);
       }
     } catch (err) {
-      console.error("Failed to send email", err);
-      alert(err === "Insufficient balance" ? "Not enough tokens. Please purchase more." : "Failed to send email. Please try again.");
+      alert("Failed to send email.");
     }
     setUnlocking(false);
   };
 
-  if (loading) {
-    return (
-      <ProtectedRoute>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="inline-block w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mb-4" />
-            <p className="text-slate-500 font-medium">Calculating your results…</p>
-          </div>
-        </div>
-      </ProtectedRoute>
-    );
-  }
-
-  if (!attempt) {
-    return (
-      <ProtectedRoute>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center p-8 bg-white rounded-2xl shadow-sm border border-rose-100 max-w-sm">
-            <p className="text-rose-500 font-bold text-lg mb-2">Result not found</p>
-            <p className="text-slate-500 text-sm mb-4">This result may have expired or the link is incorrect.</p>
-            <Link href="/" className="text-blue-600 font-bold text-sm hover:underline">← Go to Dashboard</Link>
-          </div>
-        </div>
-      </ProtectedRoute>
-    );
-  }
+  if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-slate-400 uppercase tracking-widest text-xs">Loading scoreboard...</div>;
+  if (!attempt) return <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-slate-500 font-bold"><p>Result not found.</p><Link href="/" className="text-primary-600 underline">Back Home</Link></div>;
 
   const isPremium = profile ? ['go', 'plus', 'pro'].includes(profile.accountTier) : false;
-  const isUnlocked = isPremium || attempt.resultUnlocked === true;
+  const isUnlocked = isPremium || attempt.resultUnlocked === true || attempt.isStaffSession === true;
   const hasEnoughTokens = profile ? (profile.tokenBalance ?? 0) >= 2 : false;
 
 
@@ -934,7 +896,7 @@ export default function ResultPage({ params }: { params: { id: string } }) {
 
                                   <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
                                     {/* User answer */}
-                                      <span className={`px-2 py-0.5 rounded-full ${q.isCorrect ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700 line-through'}`}>
+                                    <span className={`px-2 py-0.5 rounded-full ${q.isCorrect ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700 line-through'}`}>
                                       {q.userAnswer || '(no answer)'}
                                     </span>
 
@@ -1001,5 +963,20 @@ export default function ResultPage({ params }: { params: { id: string } }) {
         </div>
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function ResultsPage({ params }: { params: { id: string } }) {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center font-sans">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-10 h-10 animate-spin text-primary-600" />
+          <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Preparing Scoreboard...</p>
+        </div>
+      </div>
+    }>
+      <ResultsContent params={params} />
+    </Suspense>
   );
 }
