@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { db } from '@/lib/firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -15,7 +15,7 @@ function countWords(text: string) {
   return text.trim().split(/\s+/).filter(word => word.length > 0).length;
 }
 
-export default function TakingWritingTest() {
+function WritingTestContent() {
   const [test, setTest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -345,5 +345,17 @@ export default function TakingWritingTest() {
         )}
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function TakingWritingTest() {
+  return (
+    <Suspense fallback={
+       <div className="min-h-screen flex items-center justify-center font-bold text-slate-500">
+         Loading Writing Test...
+       </div>
+    }>
+      <WritingTestContent />
+    </Suspense>
   );
 }
