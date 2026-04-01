@@ -7,6 +7,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useAutoSave } from '@/lib/hooks/useAutoSave';
+import { ArrowRight, Volume2 } from 'lucide-react';
 import TestNavbar from '@/components/TestNavbar';
 import SelectionHighlighter from '@/components/SelectionHighlighter';
 
@@ -18,11 +19,18 @@ export default function TakingWritingTest() {
   const [test, setTest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [sessionData, setSessionData] = useState<any>(null);
+  const [showEmailPrompt, setShowEmailPrompt] = useState(false);
+  const [publicEmail, setPublicEmail] = useState('');
   const router = useRouter();
   const params = useParams();
   const testId = params.id as string;
   const { user, profile } = useAuth();
   
+  const searchParams = useSearchParams();
+  const sessionId = searchParams.get('session') || undefined;
+  const fullTestId = searchParams.get('fullTestId');
+
   const {
     answers: responses,
     updateAnswer: handleResponseChangeStr,
@@ -35,11 +43,10 @@ export default function TakingWritingTest() {
   } = useAutoSave({
     testId,
     userId: user?.uid,
-    section: 'writing'
+    section: 'writing',
+    sessionId
   });
   
-  const searchParams = useSearchParams();
-  const fullTestId = searchParams.get('fullTestId');
   const [fullTestComps, setFullTestComps] = useState<any>(null);
   const instructionRef = useRef<HTMLDivElement>(null);
 
@@ -69,15 +76,42 @@ export default function TakingWritingTest() {
       }
     }
     fetchTest();
-  }, [testId]);
+
+    if (sessionId) {
+      getDoc(doc(db, 'test_sessions', sessionId)).then(snap => {
+        if (snap.exists()) setSessionData(snap.data());
+      });
+    }
+  }, [testId, sessionId]);
 
   const handleResponseChange = (partIdx: number, value: string) => {
     handleResponseChangeStr(String(partIdx), value);
   };
 
   const handleSubmit = async () => {
-    if (!user || !test) return;
+    if (!test) return;
+
+    // Determine student info
+    let finalUserId = user?.uid || "";
+    let finalEmail = user?.email || "";
+    let finalName = profile?.username || user?.displayName || 'Anonymous Student';
+    let isStaffSession = sessionData?.created_by_staff === true;
+    let organization = sessionData?.organization || "Bondify";
+
+    if (isStaffSession) {
+      finalUserId = sessionId || "unknown_session";
+      finalName = sessionData.student_name;
+      finalEmail = sessionData.student_email || "";
+    } else if (!user) {
+      setShowEmailPrompt(true);
+      return;
+    }
+
     if (!confirm("Are you sure you want to finish the test?")) return;
+    performSubmit(finalUserId, finalName, finalEmail, isStaffSession, organization);
+  };
+
+  const performSubmit = async (finalUserId: string, finalName: string, finalEmail: string, isStaffSession: boolean, organization: string) => {
     setSubmitting(true);
 
     const safeParts = Array.isArray(test.parts) ? test.parts : (test.parts ? Object.values(test.parts) : []);
@@ -99,7 +133,7 @@ export default function TakingWritingTest() {
     const attemptId = `att_write_${Date.now()}`;
     const attempt = {
       id: attemptId,
-      userId: user.uid,
+      userId: finalUserId,
       testId: test.id,
       testTitle: test.title || '',
       section: 'writing',
@@ -107,19 +141,30 @@ export default function TakingWritingTest() {
       submittedAt: new Date().toISOString(),
       writingResults,
       status: 'pending_evaluation', // Writing needs manual or AI evaluation
-      userDisplayName: profile?.username || user.displayName || 'Anonymous Student',
-      userPhoto: profile?.profilePhotoUrl || user.photoURL || '',
+      userDisplayName: finalName,
+      userEmail: finalEmail,
+      isStaffSession,
+      organization,
+      sessionId: sessionId || null,
       estimatedBand,
       normalizedScore: isSkipped ? 0 : 27
     };
 
-    
     try {
       await setDoc(doc(db, 'attempts', attemptId), attempt);
       await markCompleted();
       
+      // Trigger Async Email Result
+      if (finalEmail) {
+        fetch('/api/send-result', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ attemptId, attempt })
+        }).catch(e => console.error("Result delivery failed", e));
+      }
+
       if (fullTestComps?.speaking) {
-        let url = `/speaking/${fullTestComps.speaking}?fullTestId=${fullTestId}&w=${attemptId}`;
+        let url = `/speaking/${fullTestComps.speaking}?fullTestId=${fullTestId}&w=${attemptId}${sessionId ? `&session=${sessionId}` : ''}`;
         const searchL = searchParams.get('l');
         const searchR = searchParams.get('r');
         if (searchL) url += `&l=${searchL}`;
@@ -260,6 +305,44 @@ export default function TakingWritingTest() {
             </div>
           </div>
         </div>
+
+        {/* Public Guest Email Prompt */}
+        {showEmailPrompt && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowEmailPrompt(false)} />
+            <div className="relative bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
+               <h3 className="text-2xl font-black text-slate-800 mb-2">Finish & Receive Results</h3>
+               <p className="text-slate-500 font-medium mb-8">Enter your email to receive your band score and detailed feedback.</p>
+               
+               <div className="space-y-4">
+                 <div>
+                    <label className="block text-xs font-black uppercase text-slate-400 tracking-widest ml-1 mb-2">Your Email Address</label>
+                    <input 
+                      type="email"
+                      required
+                      placeholder="e.g. john@student.com"
+                      value={publicEmail}
+                      onChange={(e) => setPublicEmail(e.target.value)}
+                      className="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none transition-all font-bold"
+                    />
+                 </div>
+                 <button 
+                  onClick={() => {
+                    if (publicEmail.includes('@') && publicEmail.includes('.')) {
+                      setShowEmailPrompt(false);
+                      performSubmit(`guest_${Date.now()}`, 'Guest Student', publicEmail, false, 'Bondify');
+                    } else {
+                      alert('Please enter a valid email address.');
+                    }
+                  }}
+                  className="w-full bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-black py-4 rounded-2xl shadow-xl shadow-fuchsia-500/20 transition-all flex items-center justify-center gap-2"
+                 >
+                   Send My Results <ArrowRight className="w-5 h-5 ml-1" />
+                 </button>
+               </div>
+            </div>
+          </div>
+        )}
       </div>
     </ProtectedRoute>
   );
