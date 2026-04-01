@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/AuthContext';
 
-export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedRouteContent({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session');
 
@@ -33,4 +32,16 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   }
 
   return <>{children}</>;
+}
+
+export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={
+      <div className="flex justify-center items-center min-h-[50vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    }>
+      <ProtectedRouteContent>{children}</ProtectedRouteContent>
+    </Suspense>
+  );
 }
