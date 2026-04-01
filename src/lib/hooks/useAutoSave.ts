@@ -16,11 +16,13 @@ export function useAutoSave({
   userId,
   section,
   initialAnswers = {},
+  sessionId: explicitSessionId,
 }: {
   testId: string | undefined;
   userId: string | undefined;
   section: string;
   initialAnswers?: Record<string, string>;
+  sessionId?: string;
 }) {
   const [answers, setAnswers] = useState<Record<string, string>>(initialAnswers);
   const [activePartIndex, setActivePartIndex] = useState(0);
@@ -28,7 +30,8 @@ export function useAutoSave({
   const [showRecoverPrompt, setShowRecoverPrompt] = useState(false);
   const [recoveredData, setRecoveredData] = useState<AutoSaveData | null>(null);
 
-  const localKey = testId ? `test_${testId}` : '';
+  const sessionId = explicitSessionId || (userId && testId ? `${userId}_${testId}` : '');
+  const localKey = sessionId ? `session_${sessionId}` : (testId ? `test_${testId}` : '');
   const isOnlineRef = useRef(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -53,9 +56,8 @@ export function useAutoSave({
       }
 
       // 2. Fetch from backend if no local data exists and session is marked 'recoverable'
-      if (!recoveredFromLocal && userId && testId && isOnlineRef.current) {
+      if (!recoveredFromLocal && sessionId && isOnlineRef.current) {
         try {
-          const sessionId = `${userId}_${testId}`;
           const snap = await getDoc(doc(db, 'test_sessions', sessionId));
           if (snap.exists()) {
             const remoteData = snap.data();
@@ -94,10 +96,9 @@ export function useAutoSave({
       setSaveStatus('Saved');
       
       // If continuing from remote, immediately save to local
-      if (userId && testId) {
+      if (sessionId) {
         saveLocally(recoveredData.answers || {}, recoveredData.last_question ?? 0);
         // Also remove 'recoverable' flag from backend once restored
-        const sessionId = `${userId}_${testId}`;
         updateDoc(doc(db, 'test_sessions', sessionId), { recoverable: false }).catch(() => {});
       }
     } else {
@@ -124,12 +125,11 @@ export function useAutoSave({
   }, [localKey, section]);
 
   const saveToBackend = useCallback(async (newAnswers: Record<string, string>, partIndex: number) => {
-    if (!userId || !testId || !isOnlineRef.current) {
+    if (!sessionId || !isOnlineRef.current) {
       if (!isOnlineRef.current) setSaveStatus('Offline - saved locally');
       return;
     }
     try {
-      const sessionId = `${userId}_${testId}`;
       const sessionRef = doc(db, 'test_sessions', sessionId);
       const sessionSnap = await getDoc(sessionRef);
       
@@ -182,7 +182,7 @@ export function useAutoSave({
     setSaveStatus('Saving...');
     debounceTimer.current = setTimeout(() => {
       saveToBackend(newAnswers, partIndex);
-    }, 1000);
+    }, 2000);
   }, [saveLocally, saveToBackend]);
 
   const updateAnswer = useCallback((qId: string, value: string) => {
@@ -200,9 +200,8 @@ export function useAutoSave({
 
   const markCompleted = useCallback(async () => {
     clearAutoSave();
-    if (userId && testId && isOnlineRef.current) {
+    if (sessionId && isOnlineRef.current) {
       try {
-        const sessionId = `${userId}_${testId}`;
         await updateDoc(doc(db, 'test_sessions', sessionId), {
           completed: true,
           updated_at: serverTimestamp(),
