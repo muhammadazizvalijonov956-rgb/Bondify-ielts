@@ -20,9 +20,15 @@ export default function CreateSessionPage() {
   useEffect(() => {
     async function fetchTests() {
       try {
-        const q = query(collection(db, 'tests'), where('status', '==', 'published'), orderBy('title', 'asc'));
+        const q = query(collection(db, 'tests'));
         const snap = await getDocs(q);
-        setTests(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        const allTests = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+
+        // Filter and sort
+        const published = allTests.filter(t => t.status === 'published');
+        published.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+
+        setTests(published);
       } catch (err) {
         console.error("Failed to fetch tests", err);
       } finally {
@@ -168,17 +174,26 @@ export default function CreateSessionPage() {
           {fetchingTests ? (
             <div className="h-14 bg-slate-50 rounded-2xl animate-pulse" />
           ) : (
-            <select
-              required
-              value={testId}
-              onChange={(e) => setTestId(e.target.value)}
-              className="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-bold appearance-none cursor-pointer"
-            >
-              <option value="">— Choose a Test —</option>
-              {tests.map(t => (
-                <option key={t.id} value={t.id}>[{t.type?.toUpperCase()}] {t.title}</option>
-              ))}
-            </select>
+            <div className="space-y-4">
+              <select
+                required
+                value={testId}
+                onChange={(e) => setTestId(e.target.value)}
+                className="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-bold appearance-none cursor-pointer"
+              >
+                <option value="">— Choose a Test —</option>
+                {tests.map(t => (
+                  <option key={t.id} value={t.id}>[{t.type?.toUpperCase()}] {t.title}</option>
+                ))}
+              </select>
+              {tests.length === 0 && (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl">
+                  <p className="text-xs font-bold text-amber-700">No published tests found.</p>
+                  <p className="text-[10px] text-amber-600 mt-0.5">Please ensure you have created tests and set their status to <span className="font-black">"Published"</span> in the Test Management panel.</p>
+                  <Link href="/admin/tests" className="text-[10px] font-black text-amber-700 underline mt-2 block uppercase tracking-widest">Go to Test Management &rarr;</Link>
+                </div>
+              )}
+            </div>
           )}
         </div>
 
