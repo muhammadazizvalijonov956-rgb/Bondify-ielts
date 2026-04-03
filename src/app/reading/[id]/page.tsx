@@ -428,8 +428,8 @@ function ReadingTestContent() {
       await setDoc(doc(db, 'attempts', attemptId), attempt);
       await markCompleted();
 
-      // Trigger Async Email Result
-      if (finalEmail) {
+      // Trigger Async Email Result - ONLY if NOT part of a full test
+      if (finalEmail && !fullTestId) {
         fetch('/api/send-result', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
