@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase/config';
-import { collection, query, orderBy, getDocs, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { Plus, Trash2, Edit, Code2, FolderTree, FileText } from 'lucide-react';
 
 export default function AdminLearnPage() {
@@ -63,18 +63,35 @@ export default function AdminLearnPage() {
     }
     const slug = catId.toLowerCase().replace(/[^a-z0-9\-]/g, '-');
     
+    const isEditing = categories.some(c => c.id === slug);
+    
+    const payload: any = {
+      title: catTitle,
+      description: catDesc,
+      updated_at: serverTimestamp()
+    };
+
+    if (!isEditing) {
+      payload.created_at = serverTimestamp();
+    }
+
+    // Clean undefined fields
+    Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
+
     try {
-      await setDoc(doc(db, 'learning_categories', slug), {
-        title: catTitle,
-        description: catDesc,
-        created_at: serverTimestamp()
-      }, { merge: true });
+      const docRef = doc(db, 'learning_categories', slug);
+      if (isEditing) {
+        await updateDoc(docRef, payload);
+      } else {
+        await setDoc(docRef, payload);
+      }
+      
       setShowCatForm(false);
       resetCatForm();
       fetchData();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("Save failed");
+      alert("Save failed: " + err.message);
     }
   };
 
@@ -109,9 +126,11 @@ export default function AdminLearnPage() {
       return;
     }
     
+    const isEditing = !!lesId;
     const id = lesId || `lesson_${Date.now()}`;
+    
     try {
-      await setDoc(doc(db, 'learning_lessons', id), {
+      const payload: any = {
         category_id: lesCatId,
         title: lesTitle,
         description: lesDesc,
@@ -122,16 +141,35 @@ export default function AdminLearnPage() {
         level: lesLevel,
         order: Number(lesOrder),
         is_published: lesPublished,
-        created_at: lesId ? undefined : serverTimestamp(), // Avoid overwriting creation date
         updated_at: serverTimestamp()
-      }, { merge: true });
+      };
+
+      if (!isEditing) {
+        payload.created_at = serverTimestamp();
+      }
+
+      // Important: Firestore rejects any field that is strictly 'undefined'
+      Object.keys(payload).forEach(key => {
+        if (payload[key] === undefined) {
+          delete payload[key];
+        }
+      });
+
+      const docRef = doc(db, 'learning_lessons', id);
+      
+      if (isEditing) {
+        await updateDoc(docRef, payload);
+      } else {
+        await setDoc(docRef, payload);
+      }
       
       setShowLessonForm(false);
       resetLessonForm();
       fetchData();
-    } catch (err) {
-      console.error(err);
-      alert("Failed to save lesson");
+    } catch (err: any) {
+      console.error("Firestore Save Error:", err);
+      // Show real error message as requested
+      alert(`Failed to save lesson: ${err.message || "Unknown error"}`);
     }
   };
 
