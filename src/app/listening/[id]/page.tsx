@@ -169,6 +169,32 @@ function renderItems(
         );
       }
 
+      if (answerType === 'true_false' || answerType === 'yes_no') {
+        const options = item.options?.length > 0 ? item.options : (answerType === 'true_false' ? ["TRUE", "FALSE", "NOT GIVEN"] : ["YES", "NO", "NOT GIVEN"]);
+        return (
+          <div key={key} ref={(el) => { questionRefs.current[qKey] = el; }} className="mb-5">
+            <div className="flex items-start gap-2 mb-2">
+              <span className="inline-flex items-center justify-center min-w-[1.375rem] h-[1.375rem] border border-slate-700 text-[10px] font-bold bg-white rounded-sm shrink-0 mt-0.5">{item.id}</span>
+              <span className="text-[13px] text-black font-medium">{item.label}</span>
+            </div>
+            <div className="flex flex-wrap gap-4 ml-8">
+              {options.map((opt: string, i: number) => {
+                const selected = answers[qKey]?.toUpperCase() === opt.toUpperCase();
+                return (
+                  <label key={i} className="flex items-center gap-2 cursor-pointer text-[12px] group select-none">
+                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${selected ? 'bg-blue-600 border-blue-600' : 'border-slate-300 bg-white group-hover:border-blue-400'}`}>
+                      {selected && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                    </div>
+                    <input type="radio" name={`q_${qKey}`} checked={selected} onChange={() => onAnswer(qKey, opt)} className="sr-only" />
+                    <span className={selected ? 'font-bold text-blue-700' : 'text-slate-600 font-medium'}>{opt}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        );
+      }
+
       return (
         <div key={key} ref={(el) => { questionRefs.current[qKey] = el; }} className="flex items-center gap-1 text-[13px] text-black mb-2 leading-relaxed flex-wrap">
           <span className="inline-flex items-center justify-center min-w-[1.375rem] h-[1.375rem] border border-slate-700 text-[10px] font-bold bg-white rounded-sm shrink-0">{item.id}</span>
