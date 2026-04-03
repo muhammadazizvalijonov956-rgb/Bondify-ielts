@@ -15,33 +15,33 @@ export default function LeaderboardPage() {
     async function fetchLeaderboard() {
       setLoading(true);
       try {
-        let constraints: any[] = [
-          orderBy('normalizedScore', 'desc'),
-          limit(50)
-        ];
-
-        if (period === 'today') {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            constraints.unshift(where('submittedAt', '>=', today.toISOString()));
-        } else if (period === 'week') {
-            const weekAgo = new Date();
-            weekAgo.setDate(weekAgo.getDate() - 7);
-            constraints.unshift(where('submittedAt', '>=', weekAgo.toISOString()));
-        }
-
-        const q = query(collection(db, 'attempts'), ...constraints);
+        const q = query(collection(db, 'attempts'), limit(200));
         const snap = await getDocs(q);
-        const list: any[] = [];
+        let list: any[] = [];
         const userIds = new Set<string>();
         
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+
         snap.forEach(docSnap => {
           const data = docSnap.data();
           if ((data.normalizedScore || 0) > 0) {
+            const submittedAt = data.submittedAt || '';
+            
+            // Period filtering
+            if (period === 'today' && submittedAt < today.toISOString()) return;
+            if (period === 'week' && submittedAt < weekAgo.toISOString()) return;
+
             list.push({ id: docSnap.id, ...data });
             if (data.userId) userIds.add(data.userId);
           }
         });
+
+        // Sort by score
+        list.sort((a, b) => (b.normalizedScore || 0) - (a.normalizedScore || 0));
+        list = list.slice(0, 50);
 
         // Fetch user profiles for display
         const userMap: Record<string, any> = {};
