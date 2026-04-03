@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase/config';
 import { collection, query, orderBy, getDocs, doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { Plus, Trash2, Edit, Code2, FolderTree, FileText } from 'lucide-react';
+import { Plus, Trash2, Edit, Code2, FolderTree, FileText, Terminal } from 'lucide-react';
 
 export default function AdminLearnPage() {
   const [activeTab, setActiveTab] = useState<'categories' | 'lessons'>('categories');
@@ -32,6 +32,12 @@ export default function AdminLearnPage() {
   const [lesLevel, setLesLevel] = useState('beginner'); // beginner | intermediate | advanced
   const [lesOrder, setLesOrder] = useState<number>(1);
   const [lesPublished, setLesPublished] = useState(false);
+  const [lesMode, setLesMode] = useState<'explanation' | 'practice' | 'both'>('explanation');
+  const [lesPracticeTitle, setLesPracticeTitle] = useState('');
+  const [lesPracticeInstructions, setLesPracticeInstructions] = useState('');
+  const [lesStarterCode, setLesStarterCode] = useState('');
+  const [lesSolutionCode, setLesSolutionCode] = useState('');
+  const [lesHints, setLesHints] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -141,6 +147,12 @@ export default function AdminLearnPage() {
         level: lesLevel,
         order: Number(lesOrder),
         is_published: lesPublished,
+        lesson_mode: lesMode,
+        practice_title: lesPracticeTitle,
+        practice_instructions: lesPracticeInstructions,
+        starter_code: lesStarterCode,
+        solution_code: lesSolutionCode,
+        hints: lesHints,
         updated_at: serverTimestamp()
       };
 
@@ -185,6 +197,12 @@ export default function AdminLearnPage() {
     setLesLevel(les.level || 'beginner');
     setLesOrder(les.order || 1);
     setLesPublished(les.is_published || false);
+    setLesMode(les.lesson_mode || 'explanation');
+    setLesPracticeTitle(les.practice_title || '');
+    setLesPracticeInstructions(les.practice_instructions || '');
+    setLesStarterCode(les.starter_code || '');
+    setLesSolutionCode(les.solution_code || '');
+    setLesHints(les.hints || '');
     setShowLessonForm(true);
   };
 
@@ -206,6 +224,12 @@ export default function AdminLearnPage() {
     setLesTask('');
     setLesOrder(1);
     setLesPublished(false);
+    setLesMode('explanation');
+    setLesPracticeTitle('');
+    setLesPracticeInstructions('');
+    setLesStarterCode('');
+    setLesSolutionCode('');
+    setLesHints('');
     setShowLessonForm(false);
   };
 
@@ -344,28 +368,77 @@ export default function AdminLearnPage() {
                       <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Main Explanation Block</label>
                       <textarea value={lesContent} onChange={e => setLesContent(e.target.value)} placeholder="Keep it 2-4 lines long" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 h-28 resize-none font-medium text-sm leading-relaxed" />
                    </div>
+
+                   <div>
+                      <label className="block text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1.5">Lesson Mode</label>
+                      <select value={lesMode} onChange={e => setLesMode(e.target.value as any)} className="w-full px-4 py-2.5 bg-indigo-50 border border-indigo-100 rounded-lg focus:ring-2 focus:ring-indigo-500 font-bold">
+                        <option value="explanation">Explanation Only</option>
+                        <option value="practice">Practice Only</option>
+                        <option value="both">Both (Explanation + Practice)</option>
+                      </select>
+                   </div>
                 </div>
 
                 <div className="space-y-5">
-                   <div>
-                      <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex justify-between">
-                        Example Code Block 
-                        <span className="text-indigo-400 lowercase font-mono bg-indigo-50 px-1 rounded border border-indigo-100">raw text</span>
-                      </label>
-                      <textarea value={lesExampleCode} onChange={e => setLesExampleCode(e.target.value)} placeholder="<h1>Hello</h1>" className="w-full px-4 py-3 bg-slate-800 border border-slate-700 text-green-400 rounded-lg focus:ring-2 focus:ring-indigo-500 h-32 font-mono text-sm leading-relaxed resize-none" />
-                   </div>
+                   {(lesMode === 'explanation' || lesMode === 'both') && (
+                     <>
+                      <div>
+                          <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex justify-between">
+                            Example Code Block 
+                            <span className="text-indigo-400 lowercase font-mono bg-indigo-50 px-1 rounded border border-indigo-100">raw text</span>
+                          </label>
+                          <textarea value={lesExampleCode} onChange={e => setLesExampleCode(e.target.value)} placeholder="<h1>Hello</h1>" className="w-full px-4 py-3 bg-slate-800 border border-slate-700 text-green-400 rounded-lg focus:ring-2 focus:ring-indigo-500 h-32 font-mono text-sm leading-relaxed resize-none" />
+                      </div>
 
-                   <div>
-                      <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Example Explanation</label>
-                      <textarea value={lesExampleExp} onChange={e => setLesExampleExp(e.target.value)} placeholder="Explain the code..." className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 h-20 resize-none font-medium text-sm" />
-                   </div>
+                      <div>
+                          <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Example Explanation</label>
+                          <textarea value={lesExampleExp} onChange={e => setLesExampleExp(e.target.value)} placeholder="Explain the code..." className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 h-20 resize-none font-medium text-sm" />
+                      </div>
 
-                   <div>
-                      <label className="block text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1.5">Interactive Task</label>
-                      <textarea value={lesTask} onChange={e => setLesTask(e.target.value)} placeholder="e.g. Change the H1 color to blue in your local editor." className="w-full px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 h-20 resize-none font-bold text-amber-900 text-sm placeholder:text-amber-300" />
-                   </div>
+                      <div>
+                          <label className="block text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1.5">Interactive Task</label>
+                          <textarea value={lesTask} onChange={e => setLesTask(e.target.value)} placeholder="e.g. Change the H1 color to blue in your local editor." className="w-full px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 h-20 resize-none font-bold text-amber-900 text-sm placeholder:text-amber-300" />
+                      </div>
+                     </>
+                   )}
                 </div>
               </div>
+
+              {/* Practice Mode Specific Fields */}
+              {(lesMode === 'practice' || lesMode === 'both') && (
+                <div className="mt-8 pt-8 border-t border-dashed border-slate-200 animate-in slide-in-from-top-4">
+                  <h3 className="text-lg font-black text-indigo-900 mb-6 flex items-center gap-2">
+                    <Terminal className="w-5 h-5" /> Practice Workspace Configuration
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-8">
+                    <div className="space-y-5">
+                      <div>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Practice Title</label>
+                        <input type="text" value={lesPracticeTitle} onChange={e => setLesPracticeTitle(e.target.value)} placeholder="e.g. Challenge: Create Your First Page" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 font-bold" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Practice Instructions (HTML support)</label>
+                        <textarea value={lesPracticeInstructions} onChange={e => setLesPracticeInstructions(e.target.value)} placeholder="Step by step guide for the student..." className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 h-40 font-medium text-sm leading-relaxed" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Hints (optional)</label>
+                        <textarea value={lesHints} onChange={e => setLesHints(e.target.value)} placeholder="One hint per line" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 h-20 font-medium text-sm" />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-5">
+                      <div>
+                        <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1.5">Starter Code</label>
+                        <textarea value={lesStarterCode} onChange={e => setLesStarterCode(e.target.value)} placeholder="<h1>Code goes here...</h1>" className="w-full px-4 py-3 bg-[#0d1117] border border-slate-800 text-emerald-400 rounded-lg focus:ring-2 focus:ring-indigo-500 h-48 font-mono text-sm leading-relaxed resize-none" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Solution Code (optional)</label>
+                        <textarea value={lesSolutionCode} onChange={e => setLesSolutionCode(e.target.value)} placeholder="Final correct code..." className="w-full px-4 py-3 bg-slate-100 border border-slate-200 text-slate-600 rounded-lg h-32 font-mono text-xs leading-relaxed resize-none opacity-60 focus:opacity-100 transition-opacity" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-4 pt-8 justify-end border-t border-slate-100 mt-8">
                 <button type="button" onClick={resetLessonForm} className="px-6 py-2.5 font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
