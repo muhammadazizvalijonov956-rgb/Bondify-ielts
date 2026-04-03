@@ -20,7 +20,9 @@ function SpeakingTestContent() {
   const testId = params.id as string;
   const searchParams = useSearchParams();
   const fullTestId = searchParams.get('fullTestId');
+  const sessionId = searchParams.get('session') || undefined;
   const { user, profile } = useAuth();
+  const [sessionData, setSessionData] = useState<any>(null);
 
   // Navigation State
   const {
@@ -63,7 +65,13 @@ function SpeakingTestContent() {
       }
     }
     fetchTest();
-  }, [testId]);
+
+    if (sessionId) {
+      getDoc(doc(db, 'test_sessions', sessionId)).then(snap => {
+        if (snap.exists()) setSessionData(snap.data());
+      });
+    }
+  }, [testId, sessionId]);
 
   useEffect(() => {
     let interval: any;
@@ -178,21 +186,36 @@ function SpeakingTestContent() {
     if (!confirm("Are you sure you want to finish the entire Speaking test?")) return;
     setSubmitting(true);
 
+    let finalUserId = user.uid;
+    let finalEmail = user.email || "";
+    let finalName = profile?.username || user.displayName || 'Anonymous Student';
+    let isStaffSession = sessionData?.created_by_staff === true;
+    let organization = sessionData?.organization || "Bondify";
+
+    if (isStaffSession) {
+      finalUserId = sessionId || "unknown_session";
+      finalName = sessionData.student_name;
+      finalEmail = sessionData.student_email || "";
+    }
+
     const isSkipped = totalSpeakingTime < 10;
     const estimatedBand = isSkipped ? 0.0 : 6.5;
 
     const attemptId = `att_speak_${Date.now()}`;
     const attempt = {
       id: attemptId,
-      userId: user.uid,
+      userId: finalUserId,
       testId: test.id,
       testTitle: test.title || '',
       section: 'speaking',
       startedAt: new Date().toISOString(),
       submittedAt: new Date().toISOString(),
       status: 'pending_evaluation',
-      userDisplayName: profile?.username || user.displayName || 'Anonymous Student',
-      userPhoto: profile?.profilePhotoUrl || user.photoURL || '',
+      userDisplayName: finalName,
+      userEmail: finalEmail,
+      isStaffSession,
+      organization,
+      sessionId: sessionId || null,
       estimatedBand,
       normalizedScore: isSkipped ? 0 : 30,
       sessionMode: sessionMode === 'human_room' ? 'human' : 'ai'
@@ -238,15 +261,15 @@ function SpeakingTestContent() {
         const fullAttemptId = `att_full_${Date.now()}`;
         const fullAttempt = {
           id: fullAttemptId,
-          userId: user.uid,
+          userId: finalUserId,
           testId: fullTestId,
           testTitle: test.title || 'Full IELTS Practice Test',
           section: 'full-test',
           startedAt: new Date().toISOString(),
           submittedAt: new Date().toISOString(),
           status: 'pending_evaluation',
-          userDisplayName: profile?.username || user.displayName || 'Anonymous Student',
-          userPhoto: profile?.profilePhotoUrl || user.photoURL || '',
+          userDisplayName: finalName,
+          userEmail: finalEmail,
           estimatedBand: overall,
           listeningBand: lBand,
           readingBand: rBand,
@@ -256,11 +279,32 @@ function SpeakingTestContent() {
           readingAttemptId: searchR || null,
           writingAttemptId: searchW || null,
           speakingAttemptId: attemptId,
+          isStaffSession,
+          organization,
+          sessionId: sessionId || null,
           fullTestId: fullTestId
         };
         await setDoc(doc(db, 'attempts', fullAttemptId), fullAttempt);
+
+        // Trigger FINAL Consolidated Email
+        if (finalEmail) {
+          fetch('/api/send-result', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ attemptId: fullAttemptId, attempt: fullAttempt })
+          }).catch(e => console.error("Final result delivery failed", e));
+        }
+
         router.push(`/results/${fullAttemptId}`);
       } else {
+        // Trigger Async Email Result - ONLY for individual speaking test
+        if (finalEmail) {
+          fetch('/api/send-result', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ attemptId, attempt })
+          }).catch(e => console.error("Result delivery failed", e));
+        }
         router.push(`/results/${attemptId}`);
       }
     } catch (err) {
