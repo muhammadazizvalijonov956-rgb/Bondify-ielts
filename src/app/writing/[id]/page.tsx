@@ -154,8 +154,8 @@ function WritingTestContent() {
       await setDoc(doc(db, 'attempts', attemptId), attempt);
       await markCompleted();
       
-      // Trigger Async Email Result
-      if (finalEmail) {
+      // Trigger Async Email Result - ONLY if NOT part of a full test
+      if (finalEmail && !fullTestId) {
         fetch('/api/send-result', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -170,6 +170,65 @@ function WritingTestContent() {
         if (searchL) url += `&l=${searchL}`;
         if (searchR) url += `&r=${searchR}`;
         router.push(url);
+      } else if (fullTestId) {
+        // This is the end of a full test (no speaking)
+        const searchL = searchParams.get('l');
+        const searchR = searchParams.get('r');
+        
+        let lBand = 0, rBand = 0;
+        if (searchL) {
+          const lSnap = await getDoc(doc(db, 'attempts', searchL));
+          if (lSnap.exists()) lBand = parseFloat(lSnap.data().estimatedBand) || 0;
+        }
+        if (searchR) {
+          const rSnap = await getDoc(doc(db, 'attempts', searchR));
+          if (rSnap.exists()) rBand = parseFloat(rSnap.data().estimatedBand) || 0;
+        }
+
+        const sum = lBand + rBand + estimatedBand;
+        let overall = sum / 3; // (L+R+W) / 3 if no speaking
+        
+        // Rounding
+        const fractionalPart = overall - Math.floor(overall);
+        if (fractionalPart < 0.25) overall = Math.floor(overall);
+        else if (fractionalPart < 0.75) overall = Math.floor(overall) + 0.5;
+        else overall = Math.ceil(overall);
+
+        const fullAttemptId = `att_full_${Date.now()}`;
+        const fullAttempt = {
+          id: fullAttemptId,
+          userId: finalUserId,
+          testId: fullTestId,
+          testTitle: test.title || 'Full IELTS Practice Test',
+          section: 'full-test',
+          startedAt: new Date().toISOString(),
+          submittedAt: new Date().toISOString(),
+          userDisplayName: finalName,
+          userEmail: finalEmail,
+          estimatedBand: overall,
+          listeningBand: lBand,
+          readingBand: rBand,
+          writingBand: estimatedBand,
+          listeningAttemptId: searchL || null,
+          readingAttemptId: searchR || null,
+          writingAttemptId: attemptId,
+          isStaffSession,
+          organization,
+          sessionId: sessionId || null
+        };
+        
+        await setDoc(doc(db, 'attempts', fullAttemptId), fullAttempt);
+
+        // Trigger FINAL Consolidated Email
+        if (finalEmail) {
+          fetch('/api/send-result', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ attemptId: fullAttemptId, attempt: fullAttempt })
+          }).catch(e => console.error("Final result delivery failed", e));
+        }
+
+        router.push(`/results/${fullAttemptId}`);
       } else {
         router.push(`/results/${attemptId}`);
       }
