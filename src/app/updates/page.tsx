@@ -13,28 +13,15 @@ export default function UpdatesPage() {
   useEffect(() => {
     async function fetchUpdates() {
       try {
-        const q = query(
-          collection(db, 'updates'), 
-          where('is_published', '==', true), 
-          orderBy('created_at', 'desc')
-        );
-        const snap = await getDocs(q);
-        const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const snap = await getDocs(query(collection(db, 'updates'), where('is_published', '==', true)));
+        const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a: any, b: any) => {
+           const timeA = a.created_at?.toMillis ? a.created_at.toMillis() : (a.created_at || 0);
+           const timeB = b.created_at?.toMillis ? b.created_at.toMillis() : (b.created_at || 0);
+           return timeB - timeA;
+        });
         setUpdates(list);
       } catch (err) {
         console.error("Failed to load updates", err);
-        // Fallback if missing index:
-        try {
-          const snap = await getDocs(query(collection(db, 'updates'), where('is_published', '==', true)));
-          const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a: any, b: any) => {
-             const timeA = a.created_at?.toMillis() || 0;
-             const timeB = b.created_at?.toMillis() || 0;
-             return timeB - timeA;
-          });
-          setUpdates(list);
-        } catch (e) {
-             console.error("Critical fallback failed", e);
-        }
       } finally {
         setLoading(false);
       }
