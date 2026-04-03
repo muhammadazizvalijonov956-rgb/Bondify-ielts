@@ -67,7 +67,10 @@ function JoinForm() {
       }
       
       const testData = testDoc.data();
-      router.push(`/${testData.type}/${testDoc.id}?session=${sessionId}`);
+      let routePrefix = testData.type || 'listening';
+      if (routePrefix === 'full_length') routePrefix = 'full-test';
+      
+      router.push(`/${routePrefix}/${testDoc.id}?session=${sessionId}`);
 
     } catch (err) {
       console.error("Join error", err);
