@@ -11,7 +11,7 @@ import Link from 'next/link';
 export default function UpdatePopup() {
   const [latestUpdate, setLatestUpdate] = useState<any>(null);
   const [showPopup, setShowPopup] = useState(false);
-  const [feedbackOption, setFeedbackOption] = useState('');
+  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [customText, setCustomText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -69,15 +69,15 @@ export default function UpdatePopup() {
   };
 
   const handleSubmitFeedback = async () => {
-    if (!feedbackOption) return;
+    if (selectedOptions.length === 0) return;
     
     setSubmitting(true);
     try {
       await addDoc(collection(db, 'update_feedback'), {
         update_id: latestUpdate.id,
         user_id: user?.uid || 'anonymous',
-        selected_option: feedbackOption,
-        custom_text: feedbackOption === 'Other' ? customText : '',
+        selected_options: selectedOptions,
+        custom_text: selectedOptions.includes('Other') ? customText : '',
         created_at: serverTimestamp()
       });
       setSubmitted(true);
@@ -96,12 +96,22 @@ export default function UpdatePopup() {
   if (!showPopup || !latestUpdate) return null;
 
   const feedbackOptions = [
-    'More speaking tests',
+    'More HTML lessons',
+    'CSS lessons',
+    'JavaScript lessons',
+    'Coding practice',
+    'IELTS vocabulary',
+    'Grammar lessons',
+    'More mock tests',
     'Better AI feedback',
-    'More listening tests',
-    'Full mock exams',
     'Other'
   ];
+
+  const toggleOption = (opt: string) => {
+    setSelectedOptions(prev => 
+      prev.includes(opt) ? prev.filter(o => o !== opt) : [...prev, opt]
+    );
+  };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
@@ -152,26 +162,36 @@ export default function UpdatePopup() {
             <>
               <h3 className="text-lg font-black text-slate-900 mb-4 tracking-tight">What would you like to see next?</h3>
               
-              <div className="space-y-3 mb-8">
-                {feedbackOptions.map(opt => (
-                  <label key={opt} className={`flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all ${feedbackOption === opt ? 'border-primary-500 bg-primary-50 shadow-sm' : 'border-slate-100 hover:border-slate-200'}`}>
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${feedbackOption === opt ? 'border-primary-600 bg-primary-600' : 'border-slate-300'}`}>
-                      {feedbackOption === opt && <div className="w-2 h-2 rounded-full bg-white" />}
-                    </div>
-                    <span className={`font-bold text-sm ${feedbackOption === opt ? 'text-primary-800' : 'text-slate-600'}`}>
-                      {opt}
-                    </span>
-                  </label>
-                ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
+                {feedbackOptions.map(opt => {
+                  const isSelected = selectedOptions.includes(opt);
+                  return (
+                    <button 
+                      key={opt} 
+                      type="button"
+                      onClick={() => toggleOption(opt)}
+                      className={`flex items-center gap-3 p-3.5 rounded-2xl border-2 transition-all text-left ${isSelected ? 'border-primary-500 bg-primary-50 shadow-sm' : 'border-slate-100 hover:border-slate-200 bg-white'}`}
+                    >
+                      <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-primary-600 bg-primary-600' : 'border-slate-300'}`}>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
+                      </div>
+                      <span className={`font-bold text-[13px] leading-tight ${isSelected ? 'text-primary-800' : 'text-slate-600'}`}>
+                        {opt}
+                      </span>
+                    </button>
+                  );
+                })}
 
-                {feedbackOption === 'Other' && (
-                  <textarea
-                    autoFocus
-                    value={customText}
-                    onChange={e => setCustomText(e.target.value)}
-                    placeholder="Tell us what you're wishing for..."
-                    className="w-full mt-2 p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary-500 font-medium text-slate-700 h-24 resize-none"
-                  />
+                {selectedOptions.includes('Other') && (
+                  <div className="col-span-full animate-in slide-in-from-top-2">
+                    <textarea
+                      autoFocus
+                      value={customText}
+                      onChange={e => setCustomText(e.target.value)}
+                      placeholder="Tell us what you're wishing for..."
+                      className="w-full mt-2 p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary-500 font-medium text-slate-700 h-24 resize-none text-sm"
+                    />
+                  </div>
                 )}
               </div>
 
@@ -184,7 +204,7 @@ export default function UpdatePopup() {
                 </button>
                 <button 
                   onClick={handleSubmitFeedback}
-                  disabled={!feedbackOption || submitting}
+                  disabled={selectedOptions.length === 0 || submitting}
                   className="flex-grow bg-slate-900 hover:bg-black text-white font-black py-4 rounded-xl shadow-xl shadow-slate-900/10 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {submitting ? 'Submitting...' : 'Submit Feedback'}
