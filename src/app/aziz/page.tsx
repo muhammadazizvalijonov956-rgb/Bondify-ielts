@@ -85,14 +85,14 @@ export default function AzizPortfolio() {
       </nav>
 
       {/* Hero Section */}
-      <section id="hero" className="relative min-h-screen flex flex-col justify-center px-6 pt-20 overflow-hidden">
+      <section id="hero" className="relative min-h-screen flex flex-col justify-center px-6 pt-24 overflow-hidden">
         {/* Background Gradients */}
         <div className="absolute top-[20%] right-[-10%] w-[500px] h-[500px] bg-[#86e329]/5 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute bottom-[10%] left-[-10%] w-[500px] h-[500px] bg-[#1a1a1a] rounded-full blur-[120px] pointer-events-none opacity-50" />
 
         <div className="max-w-6xl mx-auto w-full grid md:grid-cols-[1fr_400px] gap-12 items-center relative z-10">
           <div className="space-y-8">
-            <div className={`space-y-4 transition-all duration-1000 transform ${isVisible('hero') ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+            <div className={`space-y-4 transition-all duration-1000 transform ${isVisible('hero') ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-100'}`}>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#86e329]/10 border border-[#86e329]/20 text-[#86e329] text-xs font-bold uppercase tracking-widest mb-4">
                 <Rocket className="w-3 h-3" /> Available for projects
               </div>
@@ -106,7 +106,7 @@ export default function AzizPortfolio() {
               </h2>
             </div>
 
-            <div className={`flex flex-wrap gap-4 transition-all duration-1000 delay-300 transform ${isVisible('hero') ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+            <div className={`flex flex-wrap gap-4 transition-all duration-1000 delay-300 transform ${isVisible('hero') ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-100'}`}>
               <a href="#project" className="bg-[#86e329] text-black px-8 py-4 rounded-xl font-bold flex items-center gap-2 hover:bg-[#97f43a] transition-all hover:scale-[1.02]">
                 View Projects <ChevronRight className="w-4 h-4" />
               </a>
@@ -116,7 +116,7 @@ export default function AzizPortfolio() {
             </div>
           </div>
 
-          <div className={`relative transition-all duration-1000 delay-500 transform ${isVisible('hero') ? 'scale-100 opacity-100' : 'scale-90 opacity-0'}`}>
+          <div className={`relative transition-all duration-1000 delay-500 transform ${isVisible('hero') ? 'scale-100 opacity-100' : 'scale-95 opacity-100'}`}>
             <div className="relative w-full aspect-square rounded-[2rem] overflow-hidden border border-zinc-800 shadow-2xl group">
               <img 
                 src="/assets/images/aziz_portfolio.png" 
