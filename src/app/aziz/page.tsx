@@ -24,7 +24,16 @@ import {
 export default function AzizPortfolio() {
   const [scrolled, setScrolled] = useState(false);
   const [visibleSections, setVisibleSections] = useState<string[]>([]);
+  const [copied, setCopied] = useState(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
+
+  const copyEmail = (e: React.MouseEvent) => {
+    // We still allow mailto to trigger, but we also copy for convenience
+    const email = "muhammadazizvalijonov956@gmail.com";
+    navigator.clipboard.writeText(email);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
@@ -78,9 +87,15 @@ export default function AzizPortfolio() {
             <a href="#experience" className="hover:text-[#86e329] transition-colors">Experience</a>
             <a href="#contact" className="hover:text-[#86e329] transition-colors">Contact</a>
           </div>
-          <a href="mailto:muhammadazizvalijonov956@gmail.com" className="bg-zinc-900 border border-zinc-800 hover:border-[#86e329] px-5 py-2 rounded-full text-sm font-semibold transition-all hover:shadow-[0_0_15px_rgba(134,227,41,0.2)]">
-            Hire Me
-          </a>
+          <div className="relative group">
+            <a 
+              href="mailto:muhammadazizvalijonov956@gmail.com" 
+              onClick={copyEmail}
+              className="bg-zinc-900 border border-zinc-800 hover:border-[#86e329] px-5 py-2 rounded-full text-sm font-semibold transition-all hover:shadow-[0_0_15px_rgba(134,227,41,0.2)] flex items-center gap-2"
+            >
+              {copied ? <span className="text-[#86e329]">Email Copied!</span> : "Hire Me"}
+            </a>
+          </div>
         </div>
       </nav>
 
@@ -334,9 +349,13 @@ export default function AzizPortfolio() {
             </h3>
             
             <div className="flex flex-wrap justify-center gap-6 pt-8">
-              <a href="mailto:muhammadazizvalijonov956@gmail.com" className="group flex items-center gap-3 bg-[#86e329] text-black px-8 py-4 rounded-2xl font-bold transition-all hover:scale-105">
+              <a 
+                href="mailto:muhammadazizvalijonov956@gmail.com" 
+                onClick={copyEmail}
+                className="group flex items-center gap-3 bg-[#86e329] text-black px-8 py-4 rounded-2xl font-bold transition-all hover:scale-105 active:scale-95"
+              >
                 <Mail className="w-5 h-5" />
-                Email Me
+                {copied ? "Email Copied!" : "Email Me"}
               </a>
               <a href="https://github.com/muhammadazizvalijonov956-rgb" target="_blank" rel="noopener noreferrer" className="group flex items-center gap-3 bg-zinc-950 border border-zinc-800 hover:border-zinc-700 px-8 py-4 rounded-2xl font-bold transition-all hover:scale-105">
                 <Github className="w-5 h-5" />
