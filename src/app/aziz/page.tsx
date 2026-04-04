@@ -24,32 +24,47 @@ import {
 export default function AzizPortfolio() {
   const [scrolled, setScrolled] = useState(false);
   const [visibleSections, setVisibleSections] = useState<string[]>([]);
+  const containerRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
-      
-      const sections = ['hero', 'project', 'skills', 'experience', 'contact'];
-      sections.forEach(section => {
-        const el = document.getElementById(section);
-        if (el) {
-          const rect = el.getBoundingClientRect();
-          if (rect.top < window.innerHeight * 0.75 && !visibleSections.includes(section)) {
-            setVisibleSections(prev => [...prev, section]);
-          }
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          setVisibleSections(prev => prev.includes(entry.target.id) ? prev : [...prev, entry.target.id]);
         }
       });
+    }, { threshold: 0.1 });
+
+    const sections = ['hero', 'project', 'skills', 'experience', 'contact'];
+    sections.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+
+    const handleScroll = (e: any) => {
+      setScrolled(e.target.scrollTop > 50);
     };
-    
-    window.addEventListener('scroll', handleScroll);
-    handleScroll(); // initial check
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [visibleSections]);
+
+    const container = containerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+    }
+
+    return () => {
+      observer.disconnect();
+      if (container) {
+        container.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, []);
 
   const isVisible = (id: string) => visibleSections.includes(id);
 
   return (
-    <div className="fixed inset-0 z-[10000] bg-[#0a0a0a] text-zinc-100 overflow-y-auto selection:bg-[#86e329] selection:text-[#0a0a0a] font-sans scroll-smooth">
+    <div 
+      ref={containerRef}
+      className="fixed inset-0 z-[10000] bg-[#0a0a0a] text-zinc-100 overflow-y-auto selection:bg-[#86e329] selection:text-[#0a0a0a] font-sans scroll-smooth"
+    >
       {/* Custom Navbar (Internal) */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'bg-[#0a0a0a]/80 backdrop-blur-md border-b border-zinc-800/50 py-4' : 'bg-transparent py-8'}`}>
         <div className="max-w-6xl mx-auto px-6 flex justify-between items-center">
