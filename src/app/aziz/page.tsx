@@ -78,7 +78,7 @@ export default function AzizPortfolio() {
             <a href="#experience" className="hover:text-[#86e329] transition-colors">Experience</a>
             <a href="#contact" className="hover:text-[#86e329] transition-colors">Contact</a>
           </div>
-          <a href="mailto:muhammadaziz@bondify.uz" className="bg-zinc-900 border border-zinc-800 hover:border-[#86e329] px-5 py-2 rounded-full text-sm font-semibold transition-all hover:shadow-[0_0_15px_rgba(134,227,41,0.2)]">
+          <a href="mailto:muhammadazizvalijonov956@gmail.com" className="bg-zinc-900 border border-zinc-800 hover:border-[#86e329] px-5 py-2 rounded-full text-sm font-semibold transition-all hover:shadow-[0_0_15px_rgba(134,227,41,0.2)]">
             Hire Me
           </a>
         </div>
@@ -334,15 +334,15 @@ export default function AzizPortfolio() {
             </h3>
             
             <div className="flex flex-wrap justify-center gap-6 pt-8">
-              <a href="mailto:muhammadaziz@bondify.uz" className="group flex items-center gap-3 bg-[#86e329] text-black px-8 py-4 rounded-2xl font-bold transition-all hover:scale-105">
+              <a href="mailto:muhammadazizvalijonov956@gmail.com" className="group flex items-center gap-3 bg-[#86e329] text-black px-8 py-4 rounded-2xl font-bold transition-all hover:scale-105">
                 <Mail className="w-5 h-5" />
                 Email Me
               </a>
-              <a href="https://github.com" className="group flex items-center gap-3 bg-zinc-950 border border-zinc-800 hover:border-zinc-700 px-8 py-4 rounded-2xl font-bold transition-all hover:scale-105">
+              <a href="https://github.com/muhammadazizvalijonov956-rgb" target="_blank" rel="noopener noreferrer" className="group flex items-center gap-3 bg-zinc-950 border border-zinc-800 hover:border-zinc-700 px-8 py-4 rounded-2xl font-bold transition-all hover:scale-105">
                 <Github className="w-5 h-5" />
                 GitHub
               </a>
-              <a href="https://t.me" className="group flex items-center gap-3 bg-blue-600/10 border border-blue-500/20 text-blue-400 hover:bg-blue-600/20 px-8 py-4 rounded-2xl font-bold transition-all hover:scale-105">
+              <a href="https://t.me/vm_aziz" target="_blank" rel="noopener noreferrer" className="group flex items-center gap-3 bg-blue-600/10 border border-blue-500/20 text-blue-400 hover:bg-blue-600/20 px-8 py-4 rounded-2xl font-bold transition-all hover:scale-105">
                 <Send className="w-5 h-5 text-blue-500" />
                 Telegram
               </a>
