@@ -121,7 +121,7 @@ function RegisterForm() {
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Email</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Login Email <span className="text-slate-400 font-normal">(Ownership)</span></label>
             <input
               id="register-email"
               type="email"

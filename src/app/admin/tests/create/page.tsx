@@ -22,6 +22,7 @@ export default function CreateTestPage() {
   const [instructions, setInstructions] = useState('');
   const [difficulty, setDifficulty] = useState('medium');
   const [duration, setDuration] = useState('40'); // minutes
+  const [eventId, setEventId] = useState('');
 
   // Media
   const [audioUrlInputs, setAudioUrlInputs] = useState<string[]>(['', '', '', '']);
@@ -36,6 +37,7 @@ export default function CreateTestPage() {
 
   // Full length references
   const [availableTests, setAvailableTests] = useState<any[]>([]);
+  const [availableEvents, setAvailableEvents] = useState<any[]>([]);
   const [selectedTests, setSelectedTests] = useState({
     listening: '',
     reading: '',
@@ -55,6 +57,15 @@ export default function CreateTestPage() {
         setAvailableTests(all);
       };
       fetchTests();
+    }
+
+    if (availableEvents.length === 0) {
+      const fetchEvents = async () => {
+        const snap = await getDocs(collection(db, 'events'));
+        const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setAvailableEvents(all);
+      };
+      fetchEvents();
     }
   }, [section, activePartTab]);
 
@@ -150,6 +161,7 @@ export default function CreateTestPage() {
         instructions,
         difficulty,
         duration: parseInt(duration),
+        eventId: eventId || null,
         audioUrl: topLevelAudioUrl,
         parts: finalParts,
         createdAt: new Date().toISOString(),
@@ -247,6 +259,17 @@ export default function CreateTestPage() {
                 <option value="published">Published (Live)</option>
                 <option value="archived">Archived</option>
               </select>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100">
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1 flex items-center gap-1.5 text-indigo-600">Assign to Event</label>
+              <select value={eventId} onChange={e => setEventId(e.target.value)} className="w-full px-3 py-2 border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500 font-medium bg-indigo-50 text-indigo-900">
+                <option value="">— No Event —</option>
+                {availableEvents.map(e => (
+                  <option key={e.id} value={e.id}>{e.title}</option>
+                ))}
+              </select>
+              <p className="text-[10px] text-slate-400 font-medium mt-1 uppercase">Link this test to a high-stakes challenge</p>
             </div>
 
             {section !== 'full_length' && (

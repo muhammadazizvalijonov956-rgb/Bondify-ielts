@@ -1,22 +1,25 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { db } from '@/lib/firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { PlayCircle, Clock, CheckCircle, ArrowRight } from 'lucide-react';
 import TestNavbar from '@/components/TestNavbar';
 
-export default function FullTestSessionPage() {
+function FullTestContent() {
   const { id } = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const sessionId = searchParams.get('session');
+  
   const [test, setTest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeStep, setActiveStep] = useState(0); // 0: Intro, 1: Component List
 
   useEffect(() => {
     async function loadFullTest() {
+      if (!id) return;
       const snap = await getDoc(doc(db, 'tests', id as string));
       if (snap.exists()) {
         setTest({ id: snap.id, ...snap.data() });
@@ -36,6 +39,12 @@ export default function FullTestSessionPage() {
     { type: 'writing', id: comps.writing, time: 60 },
     { type: 'speaking', id: comps.speaking, time: 15 }
   ].filter(s => s.id);
+
+  const getModuleUrl = (type: string, moduleId: string) => {
+    let url = `/${type}/${moduleId}?fullTestId=${id}`;
+    if (sessionId) url += `&session=${sessionId}`;
+    return url;
+  };
 
   return (
     <ProtectedRoute>
@@ -76,7 +85,7 @@ export default function FullTestSessionPage() {
                           {step.time}m
                        </div>
                        <button 
-                        onClick={() => router.push(`/${step.type}/${step.id}?fullTestId=${id}`)}
+                        onClick={() => router.push(getModuleUrl(step.type, step.id))}
                         className="p-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white transition-all transform hover:scale-110 active:scale-95 shadow-lg shadow-indigo-600/20"
                        >
                          <ArrowRight className="w-5 h-5" />
@@ -88,7 +97,7 @@ export default function FullTestSessionPage() {
 
             <div className="flex flex-col gap-6">
                <button 
-                onClick={() => router.push(`/${steps[0]?.type}/${steps[0]?.id}?fullTestId=${id}`)}
+                onClick={() => router.push(getModuleUrl(steps[0]?.type, steps[0]?.id))}
                 className="w-full bg-white text-slate-900 py-6 rounded-[30px] font-black text-xl hover:bg-indigo-50 transition-all flex items-center justify-center gap-3 shadow-2xl active:scale-[0.98]"
                >
                  Begin Full Session <PlayCircle className="w-6 h-6" />
@@ -109,5 +118,13 @@ export default function FullTestSessionPage() {
         </footer>
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function FullTestSessionPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center font-bold text-slate-500">Initializing Premium Session...</div>}>
+      <FullTestContent />
+    </Suspense>
   );
 }

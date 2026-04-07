@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { db } from '@/lib/firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { useAutoSave } from '@/lib/hooks/useAutoSave';
 import { ArrowRight } from 'lucide-react';
 import TestNavbar from '@/components/TestNavbar';
 import SelectionHighlighter from '@/components/SelectionHighlighter';
@@ -174,6 +175,32 @@ function renderItems(
         );
       }
 
+      if (answerType === 'true_false' || answerType === 'yes_no') {
+        const options = item.options?.length > 0 ? item.options : (answerType === 'true_false' ? ["TRUE", "FALSE", "NOT GIVEN"] : ["YES", "NO", "NOT GIVEN"]);
+        return (
+          <div key={key} ref={(el) => { questionRefs.current[qKey] = el; }} className="mb-5">
+            <div className="flex items-start gap-2 mb-2">
+              <span className="inline-flex items-center justify-center min-w-[1.375rem] h-[1.375rem] border border-slate-700 text-[10px] font-bold bg-white rounded-sm shrink-0 mt-0.5">{item.id}</span>
+              <span className="text-[13px] text-black font-medium">{item.label}</span>
+            </div>
+            <div className="flex flex-wrap gap-4 ml-8">
+              {options.map((opt: string, i: number) => {
+                const selected = answers[qKey]?.toUpperCase() === opt.toUpperCase();
+                return (
+                  <label key={i} className="flex items-center gap-2 cursor-pointer text-[12px] group select-none">
+                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${selected ? 'bg-emerald-600 border-emerald-600' : 'border-slate-300 bg-white group-hover:border-emerald-400'}`}>
+                      {selected && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                    </div>
+                    <input type="radio" name={`q_${qKey}`} checked={selected} onChange={() => onAnswer(qKey, opt)} className="sr-only" />
+                    <span className={selected ? 'font-bold text-emerald-700' : 'text-slate-600 font-medium'}>{opt}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        );
+      }
+
       return (
         <div key={key} ref={(el) => { questionRefs.current[qKey] = el; }} className="flex items-center gap-1 text-[13px] text-black mb-2 leading-relaxed flex-wrap">
           <span className="inline-flex items-center justify-center min-w-[1.375rem] h-[1.375rem] border border-slate-700 text-[10px] font-bold bg-white rounded-sm shrink-0">{item.id}</span>
@@ -261,16 +288,38 @@ function renderItems(
   });
 }
 
-export default function TakingReadingTest() {
+function ReadingTestContent() {
   const [test, setTest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [activePartIndex, setActivePartIndex] = useState(0);
+  const [sessionData, setSessionData] = useState<any>(null);
+  const [showEmailPrompt, setShowEmailPrompt] = useState(false);
+  const [publicEmail, setPublicEmail] = useState('');
+  
   const router = useRouter();
   const params = useParams();
+  const testId = params.id as string;
   const { user, profile } = useAuth();
+  
   const searchParams = useSearchParams();
+  const sessionId = searchParams.get('session') || undefined;
+  
+  const {
+    answers,
+    updateAnswer: handleAnswer,
+    activePartIndex,
+    updateActivePart: setActivePartIndex,
+    saveStatus,
+    showRecoverPrompt,
+    handleRecover,
+    markCompleted
+  } = useAutoSave({
+    testId,
+    userId: user?.uid,
+    section: 'reading',
+    sessionId
+  });
+  
   const fullTestId = searchParams.get('fullTestId');
   const [fullTestComps, setFullTestComps] = useState<any>(null);
   const questionRefs = useRef<{ [key: string]: HTMLElement | null }>({});
@@ -301,10 +350,9 @@ export default function TakingReadingTest() {
 
   useEffect(() => {
     async function fetchTest() {
-      const id = params.id as string;
-      if (!id) return;
+      if (!testId) return;
       try {
-        const snap = await getDoc(doc(db, 'tests', id));
+        const snap = await getDoc(doc(db, 'tests', testId));
         if (snap.exists()) setTest({ id: snap.id, ...snap.data() });
       } catch (err) {
         console.error("Error fetching test:", err);
@@ -313,13 +361,39 @@ export default function TakingReadingTest() {
       }
     }
     fetchTest();
-  }, [params.id]);
 
-  const handleAnswer = (qId: string, value: string) => { setAnswers(prev => ({ ...prev, [qId]: value })); };
+    if (sessionId) {
+      getDoc(doc(db, 'test_sessions', sessionId)).then(snap => {
+        if (snap.exists()) setSessionData(snap.data());
+      });
+    }
+  }, [testId, sessionId]);
+
 
   const handleSubmit = async () => {
-    if (!user || !test) return;
+    if (!test) return;
+
+    // Determine student info
+    let finalUserId = user?.uid || "";
+    let finalEmail = user?.email || "";
+    let finalName = profile?.username || user?.displayName || 'Anonymous Student';
+    let isStaffSession = sessionData?.created_by_staff === true;
+    let organization = sessionData?.organization || "Bondify";
+
+    if (isStaffSession) {
+      finalUserId = sessionId || "unknown_session";
+      finalName = sessionData.student_name;
+      finalEmail = sessionData.student_email || "";
+    } else if (!user) {
+      setShowEmailPrompt(true);
+      return;
+    }
+
     if (!confirm("Are you sure you want to finish the test?")) return;
+    performSubmit(finalUserId, finalName, finalEmail, isStaffSession, organization);
+  };
+
+  const performSubmit = async (finalUserId: string, finalName: string, finalEmail: string, isStaffSession: boolean, organization: string) => {
     setSubmitting(true);
     let correctCount = 0, maxScore = 0;
     const safeParts = Array.isArray(test.parts) ? test.parts : (test.parts ? Object.values(test.parts) : []);
@@ -358,7 +432,7 @@ export default function TakingReadingTest() {
     const attemptId = `att_${Date.now()}`;
     const attempt = {
       id: attemptId,
-      userId: user.uid,
+      userId: finalUserId,
       testId: test.id,
       testTitle: test.title || '',
       section: 'reading',
@@ -369,15 +443,28 @@ export default function TakingReadingTest() {
       normalizedScore: normalizedRawScore,
       estimatedBand: band,
       questionResults,
-      userDisplayName: profile?.username || user.displayName || 'Anonymous Student',
-      userPhoto: profile?.profilePhotoUrl || user.photoURL || ''
+      userDisplayName: finalName,
+      userEmail: finalEmail,
+      isStaffSession,
+      organization,
+      sessionId: sessionId || null
     };
 
     try {
       await setDoc(doc(db, 'attempts', attemptId), attempt);
+      await markCompleted();
+
+      // Trigger Async Email Result - ONLY if NOT part of a full test
+      if (finalEmail && !fullTestId) {
+        fetch('/api/send-result', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ attemptId, attempt })
+        }).catch(e => console.error("Result delivery failed", e));
+      }
 
       if (fullTestComps?.writing) {
-        let url = `/writing/${fullTestComps.writing}?fullTestId=${fullTestId}&r=${attemptId}`;
+        let url = `/writing/${fullTestComps.writing}?fullTestId=${fullTestId}&r=${attemptId}${sessionId ? `&session=${sessionId}` : ''}`;
         const searchL = searchParams.get('l');
         if (searchL) url += `&l=${searchL}`;
         router.push(url);
@@ -407,7 +494,30 @@ export default function TakingReadingTest() {
   return (
     <ProtectedRoute>
       <div className="h-screen bg-[#f1f2f3] flex flex-col font-sans selection:bg-emerald-200 overflow-hidden">
-        <TestNavbar durationMinutes={60} title="Reading Practice" />
+        <TestNavbar durationMinutes={60} title="Reading Practice" saveStatus={saveStatus} />
+
+        {showRecoverPrompt && (
+          <div className="fixed inset-0 z-[100] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full text-center">
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Unfinished Test Found</h3>
+              <p className="text-sm text-slate-500 mb-6">You have a previous session for this test. Would you like to resume where you left off?</p>
+              <div className="flex gap-3 justify-center">
+                <button 
+                  onClick={() => handleRecover(false)} 
+                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-colors"
+                >
+                  Restart Fresh
+                </button>
+                <button 
+                  onClick={() => handleRecover(true)} 
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 shadow-md shadow-blue-600/20 transition-all"
+                >
+                  Continue Test
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Sticky Sub-header */}
         <div className="bg-white border-b border-slate-200 px-6 py-2.5 shadow-sm shrink-0">
@@ -434,6 +544,7 @@ export default function TakingReadingTest() {
         <div className="flex-1 flex overflow-hidden">
           {/* Left Panel: Passage */}
           <div 
+            key={`passage-panel-${activePartIndex}`}
             className="w-1/2 overflow-y-auto bg-white border-r border-slate-300 p-10 custom-scrollbar relative" 
             ref={passageRef}
             onDoubleClick={handleDoubleClick}
@@ -447,7 +558,7 @@ export default function TakingReadingTest() {
           </div>
 
           {/* Right Panel: Questions */}
-          <div className="w-1/2 overflow-y-auto bg-[#f8f9fa] p-10 custom-scrollbar">
+          <div key={`questions-panel-${activePartIndex}`} className="w-1/2 overflow-y-auto bg-[#f8f9fa] p-10 custom-scrollbar">
             <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-8 min-h-full">
               {Array.isArray(activePart.items) ? renderItems(activePart.items, answers, handleAnswer, questionRefs) : <p className="text-slate-400 italic">No questions configured for this passage.</p>}
             </div>
@@ -496,6 +607,44 @@ export default function TakingReadingTest() {
             </button>
           </div>
         </div>
+        
+        {/* Public Guest Email Prompt */}
+        {showEmailPrompt && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowEmailPrompt(false)} />
+            <div className="relative bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
+               <h3 className="text-2xl font-black text-slate-800 mb-2">Finish & Receive Results</h3>
+               <p className="text-slate-500 font-medium mb-8">Enter your email to receive your band score and detailed feedback.</p>
+               
+               <div className="space-y-4">
+                 <div>
+                    <label className="block text-xs font-black uppercase text-slate-400 tracking-widest ml-1 mb-2">Your Email Address</label>
+                    <input 
+                      type="email"
+                      required
+                      placeholder="e.g. john@student.com"
+                      value={publicEmail}
+                      onChange={(e) => setPublicEmail(e.target.value)}
+                      className="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none transition-all font-bold"
+                    />
+                 </div>
+                 <button 
+                  onClick={() => {
+                    if (publicEmail.includes('@') && publicEmail.includes('.')) {
+                      setShowEmailPrompt(false);
+                      performSubmit(`guest_${Date.now()}`, 'Guest Student', publicEmail, false, 'Bondify');
+                    } else {
+                      alert('Please enter a valid email address.');
+                    }
+                  }}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-2xl shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-2"
+                 >
+                   Send My Results <ArrowRight className="w-5 h-5" />
+                 </button>
+               </div>
+            </div>
+          </div>
+        )}
 
         <style jsx>{`
           .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -512,5 +661,17 @@ export default function TakingReadingTest() {
         />
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function TakingReadingTest() {
+  return (
+    <Suspense fallback={
+       <div className="min-h-screen flex items-center justify-center font-bold text-slate-500">
+         Loading Reading Test...
+       </div>
+    }>
+      <ReadingTestContent />
+    </Suspense>
   );
 }

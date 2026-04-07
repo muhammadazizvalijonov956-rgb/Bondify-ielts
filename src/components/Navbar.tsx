@@ -64,11 +64,9 @@ export default function Navbar() {
 
         {/* Navigation Links */}
         <div className="hidden md:flex items-center gap-6">
-          <Link href="/leaderboard" className="text-slate-600 hover:text-primary-600 font-medium transition-colors">Leaderboard</Link>
+          <Link href="/learn" className="text-slate-600 hover:text-primary-600 font-medium transition-colors">Learn</Link>
           <Link href="/pricing" className="text-slate-600 hover:text-primary-600 font-medium transition-colors">Pricing</Link>
-          <Link href="/pricing#tokens" className="text-amber-600 hover:text-amber-700 font-bold transition-colors flex items-center gap-1">
-            <Zap className="w-4 h-4 fill-amber-500" /> Buy Tokens
-          </Link>
+          <Link href="/updates" className="text-slate-600 hover:text-primary-600 font-medium transition-colors">Updates</Link>
           <Link href="/events" className="text-slate-600 hover:text-primary-600 font-medium transition-colors">Events</Link>
           <Link href="/download" className="text-slate-600 hover:text-primary-600 font-medium transition-colors">Download</Link>
         </div>
@@ -142,10 +140,7 @@ export default function Navbar() {
                     </Link>
                   )}
 
-                  <Link href="/pricing#tokens" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-amber-700 bg-amber-50 hover:bg-amber-100 font-bold transition-colors border-b border-amber-100">
-                    <Zap className="w-4 h-4 text-amber-500 fill-amber-500" />
-                    Buy Tokens
-                  </Link>
+
 
                   <Link href="/settings" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
                     <Settings className="w-4 h-4 text-slate-400" />

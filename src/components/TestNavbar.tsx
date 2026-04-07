@@ -8,9 +8,10 @@ interface TestNavbarProps {
   durationMinutes: number;
   onTimeUp?: () => void;
   title?: string;
+  saveStatus?: string;
 }
 
-export default function TestNavbar({ durationMinutes, onTimeUp, title }: TestNavbarProps) {
+export default function TestNavbar({ durationMinutes, onTimeUp, title, saveStatus }: TestNavbarProps) {
   const [timeLeft, setTimeLeft] = useState(durationMinutes * 60);
 
   useEffect(() => {
@@ -61,11 +62,18 @@ export default function TestNavbar({ durationMinutes, onTimeUp, title }: TestNav
           )}
         </div>
 
-        <div className="flex items-center gap-2 px-4 py-1.5 bg-slate-50 rounded-full border border-slate-200">
-          <Clock className="w-4 h-4 text-slate-500" />
+        <div className="flex items-center gap-4">
+          {saveStatus && (
+            <span className="text-xs font-semibold text-slate-500 animate-pulse">
+              {saveStatus}
+            </span>
+          )}
+          <div className="flex items-center gap-2 px-4 py-1.5 bg-slate-50 rounded-full border border-slate-200">
+            <Clock className="w-4 h-4 text-slate-500" />
           <span className="tabular-nums font-bold text-slate-800 tracking-tight">
             {formatTime(timeLeft)}
           </span>
+          </div>
         </div>
       </nav>
     </div>

@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { db } from '@/lib/firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { useAutoSave } from '@/lib/hooks/useAutoSave';
+import { ArrowRight, Volume2 } from 'lucide-react';
 import TestNavbar from '@/components/TestNavbar';
 import SelectionHighlighter from '@/components/SelectionHighlighter';
 
@@ -13,17 +15,38 @@ function countWords(text: string) {
   return text.trim().split(/\s+/).filter(word => word.length > 0).length;
 }
 
-export default function TakingWritingTest() {
+function WritingTestContent() {
   const [test, setTest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [responses, setResponses] = useState<Record<number, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [activePartIndex, setActivePartIndex] = useState(0);
+  const [sessionData, setSessionData] = useState<any>(null);
+  const [showEmailPrompt, setShowEmailPrompt] = useState(false);
+  const [publicEmail, setPublicEmail] = useState('');
   const router = useRouter();
   const params = useParams();
+  const testId = params.id as string;
   const { user, profile } = useAuth();
+  
   const searchParams = useSearchParams();
+  const sessionId = searchParams.get('session') || undefined;
   const fullTestId = searchParams.get('fullTestId');
+
+  const {
+    answers: responses,
+    updateAnswer: handleResponseChangeStr,
+    activePartIndex,
+    updateActivePart: setActivePartIndex,
+    saveStatus,
+    showRecoverPrompt,
+    handleRecover,
+    markCompleted
+  } = useAutoSave({
+    testId,
+    userId: user?.uid,
+    section: 'writing',
+    sessionId
+  });
+  
   const [fullTestComps, setFullTestComps] = useState<any>(null);
   const instructionRef = useRef<HTMLDivElement>(null);
 
@@ -39,10 +62,9 @@ export default function TakingWritingTest() {
 
   useEffect(() => {
     async function fetchTest() {
-      const id = params.id as string;
-      if (!id) return;
+      if (!testId) return;
       try {
-        const snap = await getDoc(doc(db, 'tests', id));
+        const snap = await getDoc(doc(db, 'tests', testId));
         if (snap.exists()) {
           const data = { id: snap.id, ...snap.data() };
           setTest(data);
@@ -54,15 +76,42 @@ export default function TakingWritingTest() {
       }
     }
     fetchTest();
-  }, [params.id]);
+
+    if (sessionId) {
+      getDoc(doc(db, 'test_sessions', sessionId)).then(snap => {
+        if (snap.exists()) setSessionData(snap.data());
+      });
+    }
+  }, [testId, sessionId]);
 
   const handleResponseChange = (partIdx: number, value: string) => {
-    setResponses(prev => ({ ...prev, [partIdx]: value }));
+    handleResponseChangeStr(String(partIdx), value);
   };
 
   const handleSubmit = async () => {
-    if (!user || !test) return;
+    if (!test) return;
+
+    // Determine student info
+    let finalUserId = user?.uid || "";
+    let finalEmail = user?.email || "";
+    let finalName = profile?.username || user?.displayName || 'Anonymous Student';
+    let isStaffSession = sessionData?.created_by_staff === true;
+    let organization = sessionData?.organization || "Bondify";
+
+    if (isStaffSession) {
+      finalUserId = sessionId || "unknown_session";
+      finalName = sessionData.student_name;
+      finalEmail = sessionData.student_email || "";
+    } else if (!user) {
+      setShowEmailPrompt(true);
+      return;
+    }
+
     if (!confirm("Are you sure you want to finish the test?")) return;
+    performSubmit(finalUserId, finalName, finalEmail, isStaffSession, organization);
+  };
+
+  const performSubmit = async (finalUserId: string, finalName: string, finalEmail: string, isStaffSession: boolean, organization: string) => {
     setSubmitting(true);
 
     const safeParts = Array.isArray(test.parts) ? test.parts : (test.parts ? Object.values(test.parts) : []);
@@ -84,7 +133,7 @@ export default function TakingWritingTest() {
     const attemptId = `att_write_${Date.now()}`;
     const attempt = {
       id: attemptId,
-      userId: user.uid,
+      userId: finalUserId,
       testId: test.id,
       testTitle: test.title || '',
       section: 'writing',
@@ -92,23 +141,94 @@ export default function TakingWritingTest() {
       submittedAt: new Date().toISOString(),
       writingResults,
       status: 'pending_evaluation', // Writing needs manual or AI evaluation
-      userDisplayName: profile?.username || user.displayName || 'Anonymous Student',
-      userPhoto: profile?.profilePhotoUrl || user.photoURL || '',
+      userDisplayName: finalName,
+      userEmail: finalEmail,
+      isStaffSession,
+      organization,
+      sessionId: sessionId || null,
       estimatedBand,
       normalizedScore: isSkipped ? 0 : 27
     };
 
-    
     try {
       await setDoc(doc(db, 'attempts', attemptId), attempt);
+      await markCompleted();
       
+      // Trigger Async Email Result - ONLY if NOT part of a full test
+      if (finalEmail && !fullTestId) {
+        fetch('/api/send-result', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ attemptId, attempt })
+        }).catch(e => console.error("Result delivery failed", e));
+      }
+
       if (fullTestComps?.speaking) {
-        let url = `/speaking/${fullTestComps.speaking}?fullTestId=${fullTestId}&w=${attemptId}`;
+        let url = `/speaking/${fullTestComps.speaking}?fullTestId=${fullTestId}&w=${attemptId}${sessionId ? `&session=${sessionId}` : ''}`;
         const searchL = searchParams.get('l');
         const searchR = searchParams.get('r');
         if (searchL) url += `&l=${searchL}`;
         if (searchR) url += `&r=${searchR}`;
         router.push(url);
+      } else if (fullTestId) {
+        // This is the end of a full test (no speaking)
+        const searchL = searchParams.get('l');
+        const searchR = searchParams.get('r');
+        
+        let lBand = 0, rBand = 0;
+        if (searchL) {
+          const lSnap = await getDoc(doc(db, 'attempts', searchL));
+          if (lSnap.exists()) lBand = parseFloat(lSnap.data().estimatedBand) || 0;
+        }
+        if (searchR) {
+          const rSnap = await getDoc(doc(db, 'attempts', searchR));
+          if (rSnap.exists()) rBand = parseFloat(rSnap.data().estimatedBand) || 0;
+        }
+
+        const sum = lBand + rBand + estimatedBand;
+        let overall = sum / 3; // (L+R+W) / 3 if no speaking
+        
+        // Rounding
+        const fractionalPart = overall - Math.floor(overall);
+        if (fractionalPart < 0.25) overall = Math.floor(overall);
+        else if (fractionalPart < 0.75) overall = Math.floor(overall) + 0.5;
+        else overall = Math.ceil(overall);
+
+        const fullAttemptId = `att_full_${Date.now()}`;
+        const fullAttempt = {
+          id: fullAttemptId,
+          userId: finalUserId,
+          testId: fullTestId,
+          testTitle: test.title || 'Full IELTS Practice Test',
+          section: 'full-test',
+          startedAt: new Date().toISOString(),
+          submittedAt: new Date().toISOString(),
+          userDisplayName: finalName,
+          userEmail: finalEmail,
+          estimatedBand: overall,
+          listeningBand: lBand,
+          readingBand: rBand,
+          writingBand: estimatedBand,
+          listeningAttemptId: searchL || null,
+          readingAttemptId: searchR || null,
+          writingAttemptId: attemptId,
+          isStaffSession,
+          organization,
+          sessionId: sessionId || null
+        };
+        
+        await setDoc(doc(db, 'attempts', fullAttemptId), fullAttempt);
+
+        // Trigger FINAL Consolidated Email
+        if (finalEmail) {
+          fetch('/api/send-result', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ attemptId: fullAttemptId, attempt: fullAttempt })
+          }).catch(e => console.error("Final result delivery failed", e));
+        }
+
+        router.push(`/results/${fullAttemptId}`);
       } else {
         router.push(`/results/${attemptId}`);
       }
@@ -130,8 +250,31 @@ export default function TakingWritingTest() {
   return (
     <ProtectedRoute>
       <div className="h-screen bg-[#f1f2f3] flex flex-col font-sans selection:bg-fuchsia-200 overflow-hidden">
-        <TestNavbar durationMinutes={60} title="Writing Practice" />
+        <TestNavbar durationMinutes={60} title="Writing Practice" saveStatus={saveStatus} />
         
+        {showRecoverPrompt && (
+          <div className="fixed inset-0 z-[100] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full text-center">
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Unfinished Test Found</h3>
+              <p className="text-sm text-slate-500 mb-6">You have a previous session for this test. Would you like to resume where you left off?</p>
+              <div className="flex gap-3 justify-center">
+                <button 
+                  onClick={() => handleRecover(false)} 
+                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-colors"
+                >
+                  Restart Fresh
+                </button>
+                <button 
+                  onClick={() => handleRecover(true)} 
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 shadow-md shadow-blue-600/20 transition-all"
+                >
+                  Continue Test
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Sticky Sub-header */}
         <div className="bg-white border-b border-slate-200 px-6 py-2.5 shadow-sm shrink-0">
           <div className="w-full flex items-center justify-between">
@@ -163,7 +306,7 @@ export default function TakingWritingTest() {
         {/* Main Split View */}
         <div className="flex-1 flex overflow-hidden">
           {/* Left Panel: Prompt */}
-          <div className="w-1/2 overflow-y-auto bg-white border-r border-slate-300 p-10 custom-scrollbar relative" ref={instructionRef}>
+          <div key={`writing-prompt-${activePartIndex}`} className="w-1/2 overflow-y-auto bg-white border-r border-slate-300 p-10 custom-scrollbar relative" ref={instructionRef}>
             <SelectionHighlighter containerRef={instructionRef} />
             
             {activePart.description && (
@@ -192,7 +335,7 @@ export default function TakingWritingTest() {
           </div>
 
           {/* Right Panel: Editor */}
-          <div className="w-1/2 flex flex-col bg-[#f8f9fa] p-10 overflow-hidden">
+          <div key={`writing-editor-${activePartIndex}`} className="w-1/2 flex flex-col bg-[#f8f9fa] p-10 overflow-hidden">
             <div className="flex-1 bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col overflow-hidden">
               <textarea
                 value={currentResponse}
@@ -221,7 +364,57 @@ export default function TakingWritingTest() {
             </div>
           </div>
         </div>
+
+        {/* Public Guest Email Prompt */}
+        {showEmailPrompt && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowEmailPrompt(false)} />
+            <div className="relative bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
+               <h3 className="text-2xl font-black text-slate-800 mb-2">Finish & Receive Results</h3>
+               <p className="text-slate-500 font-medium mb-8">Enter your email to receive your band score and detailed feedback.</p>
+               
+               <div className="space-y-4">
+                 <div>
+                    <label className="block text-xs font-black uppercase text-slate-400 tracking-widest ml-1 mb-2">Your Email Address</label>
+                    <input 
+                      type="email"
+                      required
+                      placeholder="e.g. john@student.com"
+                      value={publicEmail}
+                      onChange={(e) => setPublicEmail(e.target.value)}
+                      className="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none transition-all font-bold"
+                    />
+                 </div>
+                 <button 
+                  onClick={() => {
+                    if (publicEmail.includes('@') && publicEmail.includes('.')) {
+                      setShowEmailPrompt(false);
+                      performSubmit(`guest_${Date.now()}`, 'Guest Student', publicEmail, false, 'Bondify');
+                    } else {
+                      alert('Please enter a valid email address.');
+                    }
+                  }}
+                  className="w-full bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-black py-4 rounded-2xl shadow-xl shadow-fuchsia-500/20 transition-all flex items-center justify-center gap-2"
+                 >
+                   Send My Results <ArrowRight className="w-5 h-5 ml-1" />
+                 </button>
+               </div>
+            </div>
+          </div>
+        )}
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function TakingWritingTest() {
+  return (
+    <Suspense fallback={
+       <div className="min-h-screen flex items-center justify-center font-bold text-slate-500">
+         Loading Writing Test...
+       </div>
+    }>
+      <WritingTestContent />
+    </Suspense>
   );
 }

@@ -5,7 +5,7 @@ import { Plus, Trash2, GripVertical, ChevronDown, ChevronUp, Type, List, AlignLe
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type ItemType = "heading" | "text" | "section" | "question" | "matching_group" | "table" | "image";
-type AnswerType = "blank" | "multiple_choice" | "multi_select" | "dropdown";
+type AnswerType = "blank" | "multiple_choice" | "multi_select" | "dropdown" | "true_false" | "yes_no";
 
 interface MatchingOption { letter: string; text: string; }
 interface MatchingQuestion { id: number; label: string; correctAnswer: string; }
@@ -91,6 +91,8 @@ const ANSWER_TYPE_META: Record<AnswerType, { label: string; color: string; icon:
   multiple_choice:  { label: "Multiple Choice",  color: "bg-indigo-50 text-indigo-700 border-indigo-200", icon: <List className="w-3 h-3" /> },
   multi_select:     { label: "Multi-Select",     color: "bg-purple-50 text-purple-700 border-purple-200", icon: <CheckSquare className="w-3 h-3" /> },
   dropdown:         { label: "Dropdown Select",  color: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: <ChevronDown className="w-3 h-3" /> },
+  true_false:       { label: "T/F/NG Choice",    color: "bg-amber-50 text-amber-700 border-amber-200",   icon: <CheckSquare className="w-3 h-3" /> },
+  yes_no:           { label: "Y/N/NG Choice",    color: "bg-rose-50 text-rose-700 border-rose-200",     icon: <CheckSquare className="w-3 h-3" /> },
 };
 
 // ── ItemCard ──────────────────────────────────────────────────────────────────
@@ -199,6 +201,8 @@ function ItemCard({ item, index, total, onUpdate, onRemove, onMove, globalNextId
                       <option value="multiple_choice">Multiple Choice (single)</option>
                       <option value="multi_select">Multi-Select (checkboxes)</option>
                       <option value="dropdown">Dropdown (Match to Paragraph)</option>
+                      <option value="true_false">True / False / Not Given</option>
+                      <option value="yes_no">Yes / No / Not Given</option>
                     </select>
                   </div>
                 )}
@@ -232,7 +236,7 @@ function ItemCard({ item, index, total, onUpdate, onRemove, onMove, globalNextId
                 </div>
               )}
 
-              {(item.answer_type === "multiple_choice" || item.answer_type === "multi_select" || item.answer_type === "dropdown") && section !== 'speaking' && (
+              {item.answer_type && item.answer_type !== "blank" && section !== 'speaking' && (
                 <div className="space-y-2">
                   <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">
                     {item.answer_type === "dropdown" ? "Dropdown Options (e.g. A, B, C...)" : "Options"}
@@ -247,6 +251,12 @@ function ItemCard({ item, index, total, onUpdate, onRemove, onMove, globalNextId
                   <button type="button" onClick={addOption} className="text-xs font-bold text-blue-600">+ Add Option</button>
                   {item.answer_type === "dropdown" && (item.options ?? []).length === 0 && (
                     <button type="button" onClick={() => update({ options: ["A", "B", "C", "D", "E", "F", "G"] })} className="text-[10px] text-slate-400 hover:text-blue-500 transition-colors ml-4 underline underline-offset-2 font-medium">Quick add A-G</button>
+                  )}
+                  {item.answer_type === "true_false" && (item.options ?? []).length === 0 && (
+                    <button type="button" onClick={() => update({ options: ["TRUE", "FALSE", "NOT GIVEN"] })} className="text-[10px] text-slate-400 hover:text-blue-500 transition-colors ml-4 underline underline-offset-2 font-medium">Quick add T/F/NG</button>
+                  )}
+                  {item.answer_type === "yes_no" && (item.options ?? []).length === 0 && (
+                    <button type="button" onClick={() => update({ options: ["YES", "NO", "NOT GIVEN"] })} className="text-[10px] text-slate-400 hover:text-blue-500 transition-colors ml-4 underline underline-offset-2 font-medium">Quick add Y/N/NG</button>
                   )}
                 </div>
               )}

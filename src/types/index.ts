@@ -40,12 +40,18 @@ export interface Event {
   description: string;
   bannerImageUrl: string | null;
   eligibility: 'public' | 'premium-only';
-  prizePool: number;
-  startDate: string;
-  endDate: string;
+  prizePool: string; // Changed to string to support "100 Tokens" etc.
+  startDate: string; // ISO Date
+  endDate: string;   // ISO Date
+  duration: number;  // in minutes
   status: 'upcoming' | 'active' | 'completed';
   winners: string[]; // array of userIds
   participants: string[]; // array of userIds
+  questions?: any[]; // Legacy fallback
+  reading?: any[];
+  listening?: any[];
+  writing?: any[];
+  speaking?: any[];
   createdAt: string;
 }
 
