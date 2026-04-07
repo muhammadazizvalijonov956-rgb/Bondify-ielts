@@ -57,3 +57,5 @@ export interface TokenTransaction {
   relatedId?: string;
   createdAt: string;
 }
+
+export * from './vocab';
