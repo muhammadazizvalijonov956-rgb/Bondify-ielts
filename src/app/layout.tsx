@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/lib/contexts/AuthContext';
+import { Toaster } from 'react-hot-toast';
 import Navbar from '@/components/Navbar';
 import LockdownManager from '@/components/LockdownManager';
 import UpdatePopup from '@/components/UpdatePopup';
@@ -25,6 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
+        <Toaster position="top-center" />
         <AuthProvider>
           <Suspense fallback={null}>
             <LockdownManager />

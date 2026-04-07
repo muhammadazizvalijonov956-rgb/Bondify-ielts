@@ -8,7 +8,6 @@ import { VocabStats } from '@/components/vocab/VocabStats';
 import { DailySession, VocabQuestion } from '@/types/vocab';
 import { getDailySession, saveDailySession, getWeakWords, getReviewQueue, updateWordProgress, getUserVocabLevel, completeDailySession } from '@/lib/firebase/vocab-db';
 import { Loader2, Sparkles, Trophy, ArrowRight, RefreshCcw } from 'lucide-react';
-import Navbar from '@/components/Navbar';
 
 export default function VocabGamePage() {
   const { user, profile, loading: authLoading } = useAuth();
@@ -153,7 +152,6 @@ export default function VocabGamePage() {
   if (session.completed) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col p-4">
-        <Navbar />
         <div className="flex-1 flex flex-col items-center justify-center max-w-4xl mx-auto w-full">
           <div className="bg-white dark:bg-slate-900 p-12 rounded-[3rem] shadow-2xl border border-slate-200 dark:border-slate-800 text-center w-full transform hover:scale-[1.01] transition-all">
             <div className="w-24 h-24 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-8 animate-bounce">
@@ -178,7 +176,7 @@ export default function VocabGamePage() {
             </div>
 
             <button 
-              onClick={() => window.location.href = '/dashboard'}
+              onClick={() => window.location.href = '/learn'}
               className="px-12 py-6 bg-slate-800 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black text-2xl flex items-center justify-center gap-4 mx-auto hover:opacity-90 transition-all shadow-xl"
             >
               Back to Dashboard
@@ -194,7 +192,6 @@ export default function VocabGamePage() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
-      <Navbar />
       
       <main className="flex-1 p-4 md:p-12 overflow-y-auto">
         <div className="max-w-4xl mx-auto flex flex-col h-full">

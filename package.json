@@ -25,7 +25,8 @@
     "next": "^14.2.35",
     "nodemailer": "^8.0.4",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "react-hot-toast": "^2.6.0"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.11.1",

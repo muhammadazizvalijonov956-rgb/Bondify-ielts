@@ -14,6 +14,8 @@ export interface VocabQuestion {
   question: string;
   options: string[];
   correctAnswer: string;
+  userAnswer?: string;
+  isCorrect?: boolean;
   explanation: string;
   exampleSentence: string;
   difficulty: number;
@@ -40,7 +42,15 @@ export interface DailySession {
   score: number;
   completed: boolean;
   level: number;
-  weakWordsGenerated: string[];
+  weakWordsGenerated?: string[];
+  stats?: {
+    correct: number;
+    total: number;
+    accuracy: number;
+    bandScore: number;
+  };
+  editedByAdmin?: boolean;
+  updatedAt?: any;
 }
 
 export interface ReviewQueueItem {

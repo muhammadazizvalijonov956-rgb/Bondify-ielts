@@ -1,24 +1,25 @@
 import { db } from './config';
-import { 
-  collection, 
-  doc, 
-  setDoc, 
-  getDoc, 
-  getDocs, 
-  query, 
-  where, 
-  orderBy, 
-  limit, 
-  Timestamp, 
-  updateDoc, 
+import {
+  collection,
+  doc,
+  setDoc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  limit,
+  Timestamp,
+  updateDoc,
   increment,
-  arrayUnion
+  arrayUnion,
+  deleteDoc
 } from 'firebase/firestore';
-import { 
-  DailySession, 
-  UserVocabProgress, 
-  VocabQuestion, 
-  ReviewQueueItem 
+import {
+  DailySession,
+  UserVocabProgress,
+  VocabQuestion,
+  ReviewQueueItem
 } from '@/types/vocab';
 
 export async function getUserVocabProgress(userId: string): Promise<UserVocabProgress[]> {
@@ -29,7 +30,7 @@ export async function getUserVocabProgress(userId: string): Promise<UserVocabPro
 
 export async function getWeakWords(userId: string, limit_count: number = 10): Promise<string[]> {
   const q = query(
-    collection(db, 'vocab_progress'), 
+    collection(db, 'vocab_progress'),
     where('userId', '==', userId),
     where('status', '==', 'weak'),
     limit(limit_count)
@@ -80,7 +81,7 @@ export async function updateWordProgress(userId: string, word: string, correct: 
   if (progressDoc.exists()) {
     const data = progressDoc.data() as UserVocabProgress;
     const newMastery = correct ? Math.min(100, data.masteryLevel + 10) : Math.max(0, data.masteryLevel - 15);
-    
+
     // Spaced repetition interval (very simple version for MVP)
     const intervalDays = correct ? Math.pow(2, Math.floor(newMastery / 20)) : 1;
     nextReviewAt.setDate(now.getDate() + intervalDays);
@@ -133,18 +134,26 @@ export async function getUserVocabLevel(userId: string): Promise<number> {
 
 export async function completeDailySession(session: DailySession) {
   const sessionRef = doc(db, 'daily_sessions', session.id);
+  
+  const total = session.questions.length;
+  const correct = session.score;
+  const accuracy = Math.round((correct / total) * 100);
+  const bandScore = Math.round(((correct / total) * 9) * 2) / 2;
+
   await updateDoc(sessionRef, {
     completed: true,
     score: session.score,
+    stats: {
+      correct,
+      total,
+      accuracy,
+      bandScore
+    },
     updatedAt: Timestamp.now()
   });
 
   // Calculate difficulty adjustment
-  const accuracy = (session.score / session.questions.length) * 100;
-  
   const levelRef = doc(db, 'vocab_levels', session.userId);
-  const levelSnap = await getDoc(levelRef);
-  
   let currentLevel = session.level;
   if (accuracy >= 80) {
     currentLevel = Math.min(4, currentLevel + 1);
@@ -156,4 +165,28 @@ export async function completeDailySession(session: DailySession) {
     level: currentLevel,
     lastUpdate: new Date().toISOString()
   }, { merge: true });
+}
+
+export async function getSessionById(sessionId: string): Promise<DailySession | null> {
+  const docRef = doc(db, 'daily_sessions', sessionId);
+  const snap = await getDoc(docRef);
+  if (!snap.exists()) return null;
+  return snap.data() as DailySession;
+}
+
+export async function updateSession(sessionId: string, data: Partial<DailySession>) {
+  const docRef = doc(db, 'daily_sessions', sessionId);
+  await updateDoc(docRef, {
+    ...data,
+    updatedAt: Timestamp.now()
+  });
+}
+
+export async function sendEmailResult(sessionId: string) {
+  const response = await fetch('/api/vocab/send-result', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId })
+  });
+  return await response.json();
 }

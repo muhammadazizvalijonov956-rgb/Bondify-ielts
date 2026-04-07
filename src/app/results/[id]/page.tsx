@@ -10,10 +10,12 @@ import {
   Lock, Unlock, Users, Zap, CheckCircle, XCircle,
   BarChart2, BookOpen, Lightbulb, ChevronDown, ChevronUp,
   TrendingUp, Award, Target, Mic, Star, Send,
-  ChevronRight, FileText, Globe, Clock, Sparkles, Share2, Mail, Download, BrainCircuit, Activity, GraduationCap, Loader2
+  ChevronRight, FileText, Globe, Clock, Sparkles, Share2, Mail, Download, BrainCircuit, Activity, GraduationCap, Loader2,
+  Edit3, ShieldCheck, Save, CheckCircle2, XCircle as XCircle2
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { toast } from 'react-hot-toast';
 
 // ── High-level vocabulary to highlight ──────────────────────────────
 const HIGH_LEVEL_WORDS = new Set([
@@ -107,6 +109,43 @@ function getBandAdvice(band: number) {
       "Re-take this test after 3 days of practice",
     ]
   };
+}
+
+// ── IELTS SCORING ──────────────────────────────────────────────────
+function calculateListeningBand(raw: number): number {
+  if (raw <= 0) return 0.0;
+  if (raw >= 39) return 9.0;
+  if (raw >= 37) return 8.5;
+  if (raw >= 35) return 8.0;
+  if (raw >= 32) return 7.5;
+  if (raw >= 30) return 7.0;
+  if (raw >= 26) return 6.5;
+  if (raw >= 23) return 6.0;
+  if (raw >= 18) return 5.5;
+  if (raw >= 16) return 5.0;
+  if (raw >= 13) return 4.5;
+  if (raw >= 10) return 4.0;
+  if (raw >= 6) return 3.5;
+  if (raw >= 4) return 3.0;
+  return 2.5;
+}
+
+function calculateReadingBand(raw: number): number {
+  if (raw <= 0) return 0.0;
+  if (raw >= 39) return 9.0;
+  if (raw >= 37) return 8.5;
+  if (raw >= 35) return 8.0;
+  if (raw >= 33) return 7.5;
+  if (raw >= 30) return 7.0;
+  if (raw >= 27) return 6.5;
+  if (raw >= 23) return 6.0;
+  if (raw >= 19) return 5.5;
+  if (raw >= 15) return 5.0;
+  if (raw >= 13) return 4.5;
+  if (raw >= 10) return 4.0;
+  if (raw >= 6) return 3.5;
+  if (raw >= 4) return 3.0;
+  return 2.5;
 }
 
 // ── Writing AI Breakdown ──────────────────────────────────────────────
@@ -287,7 +326,15 @@ function ResultsContent({ params }: { params: { id: string } }) {
   const [unlocking, setUnlocking] = useState(false);
   const [showAnswerKey, setShowAnswerKey] = useState(false);
   const [scoreEmail, setScoreEmail] = useState('');
+  
+  // Admin Editing States
+  const [editMode, setEditMode] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [localQuestions, setLocalQuestions] = useState<any[]>([]);
+  const [manualBand, setManualBand] = useState<number | null>(null);
+
   const { user, profile } = useAuth();
+  const isAdmin = profile?.role === 'admin';
 
   useEffect(() => {
     async function fetchResult() {
@@ -316,6 +363,10 @@ function ResultsContent({ params }: { params: { id: string } }) {
             }
           }
           setAttempt(attemptData);
+          setLocalQuestions(attemptData.questionResults || []);
+          if (attemptData.editedByAdmin) {
+            setManualBand(attemptData.estimatedBand);
+          }
         }
       } catch (err) {
         console.error("Failed to fetch result", err);
@@ -325,6 +376,48 @@ function ResultsContent({ params }: { params: { id: string } }) {
     }
     fetchResult();
   }, [params.id]);
+
+  const handleToggleCorrect = (index: number) => {
+    if (!editMode) return;
+    const newQs = [...localQuestions];
+    newQs[index] = { ...newQs[index], isCorrect: !newQs[index].isCorrect };
+    setLocalQuestions(newQs);
+  };
+
+  const handleSaveAdminEdits = async () => {
+    if (!isAdmin || !attempt) return;
+    setSaving(true);
+    try {
+      const correctCount = localQuestions.filter(q => q.isCorrect).length;
+      let finalBand = manualBand;
+
+      if (finalBand === null) {
+        // Auto-calculate based on raw score if not manually set
+        if (attempt.section === 'listening') finalBand = calculateListeningBand(correctCount);
+        else if (attempt.section === 'reading') finalBand = calculateReadingBand(correctCount);
+        else finalBand = attempt.estimatedBand;
+      }
+
+      const attemptRef = doc(db, 'attempts', attempt.id);
+      await updateDoc(attemptRef, {
+        questionResults: localQuestions,
+        rawScore: correctCount,
+        estimatedBand: finalBand,
+        editedByAdmin: true,
+        lastEditedBy: user?.uid,
+        updatedAt: serverTimestamp()
+      });
+
+      setAttempt({ ...attempt, questionResults: localQuestions, rawScore: correctCount, estimatedBand: finalBand, editedByAdmin: true });
+      setEditMode(false);
+      toast.success("Result updated successfully");
+    } catch (error) {
+      console.error("Save error:", error);
+      toast.error("Failed to save changes");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const buildEmailPayload = (attemptData: any, user: any, profile: any, targetEmail: string) => {
     // Plain text generation 
@@ -582,6 +675,41 @@ function ResultsContent({ params }: { params: { id: string } }) {
     <ProtectedRoute>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 py-10 px-4">
         <div className="w-full max-w-2xl mx-auto space-y-6">
+          
+          {/* Admin Tools */}
+          {isAdmin && (
+            <div className="bg-slate-900 text-white rounded-3xl p-6 shadow-xl flex items-center justify-between border border-white/10">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center">
+                  <ShieldCheck className="w-6 h-6 text-indigo-400" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm">Instructor Panel</h3>
+                  <p className="text-white/50 text-[10px] uppercase tracking-widest font-black">Authorized Personnel Only</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => setEditMode(!editMode)}
+                  className={`px-5 py-2 rounded-xl text-xs font-bold transition-all ${
+                    editMode ? 'bg-rose-500 hover:bg-rose-600' : 'bg-white text-slate-900 hover:bg-slate-100'
+                  }`}
+                >
+                  {editMode ? 'Cancel Edit' : 'Edit Results'}
+                </button>
+                {editMode && (
+                  <button 
+                    onClick={handleSaveAdminEdits}
+                    disabled={saving}
+                    className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition-all flex items-center gap-2"
+                  >
+                    {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                    Save
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* ── HEADER CARD ── */}
           <div className="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden">
@@ -597,6 +725,15 @@ function ResultsContent({ params }: { params: { id: string } }) {
               <p className="text-slate-400 text-xs font-medium mt-1 mb-6">
                 Submitted {new Date(attempt.submittedAt).toLocaleDateString('en-US', { dateStyle: 'medium' })}
               </p>
+
+              {attempt.editedByAdmin && (
+                <div className="mb-6 flex justify-center">
+                  <div className="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 px-4 py-1.5 rounded-full text-indigo-700 text-[10px] font-black uppercase tracking-widest shadow-sm">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    Instructor Adjusted
+                  </div>
+                </div>
+              )}
 
               {!isUnlocked ? (
                 // ── LOCKED ──────────────────────────────────
@@ -872,50 +1009,57 @@ function ResultsContent({ params }: { params: { id: string } }) {
                         <div key={partTitle}>
                           <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3 border-b border-slate-100 pb-2">{partTitle}</p>
                           <div className="space-y-2">
-                            {qs.map((q: any) => (
-                              <div
-                                key={q.id}
-                                className={`flex items-start gap-3 rounded-xl border p-3 ${q.isCorrect
-                                  ? 'bg-emerald-50 border-emerald-100'
-                                  : 'bg-rose-50 border-rose-100'
-                                  }`}
-                              >
-                                {/* Number */}
-                                <span className={`shrink-0 w-6 h-6 rounded-md text-xs font-bold flex items-center justify-center mt-0.5 ${q.isCorrect ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
-                                  }`}>
-                                  {q.number}
-                                </span>
+                             {/* Use localQuestions if in edit mode or editedByAdmin, otherwise original qs */}
+                            {(editMode ? localQuestions.filter(q => q.partTitle === partTitle || (!q.partTitle && partTitle === 'Questions')) : qs).map((q: any, qIdx: number) => {
+                              const globalIdx = localQuestions.findIndex(lq => lq.id === q.id);
+                              const isCorrect = q.isCorrect;
+                              
+                              return (
+                                <div
+                                  key={q.id}
+                                  onClick={() => editMode && handleToggleCorrect(globalIdx)}
+                                  className={`flex items-start gap-3 rounded-xl border p-3 transition-all ${
+                                    editMode ? 'cursor-pointer hover:ring-2 hover:ring-indigo-500/50 active:scale-[0.98]' : ''
+                                  } ${isCorrect
+                                    ? 'bg-emerald-50 border-emerald-100'
+                                    : 'bg-rose-50 border-rose-100'
+                                    }`}
+                                >
+                                  {/* Number */}
+                                  <span className={`shrink-0 w-6 h-6 rounded-md text-xs font-bold flex items-center justify-center mt-0.5 ${isCorrect ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
+                                    }`}>
+                                    {q.number}
+                                  </span>
 
-                                <div className="flex-1 min-w-0">
-                                  {/* Question label */}
-                                  <p className="text-[12px] text-slate-600 mb-1 leading-relaxed">
-                                    {highlightVocab(
-                                      [q.label, '____', q.suffix].filter(Boolean).join(' ')
-                                    )}
-                                  </p>
+                                  <div className="flex-1 min-w-0">
+                                    {/* Question label */}
+                                    <p className="text-[12px] text-slate-600 mb-1 leading-relaxed">
+                                      {[q.label, '____', q.suffix].filter(Boolean).join(' ')}
+                                    </p>
 
-                                  <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-                                    {/* User answer */}
-                                    <span className={`px-2 py-0.5 rounded-full ${q.isCorrect ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700 line-through'}`}>
-                                      {q.userAnswer || '(no answer)'}
-                                    </span>
+                                    <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+                                      {/* User answer */}
+                                      <span className={`px-2 py-0.5 rounded-full ${isCorrect ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700 line-through'}`}>
+                                        {q.userAnswer || '(no answer)'}
+                                      </span>
 
-                                    {!q.isCorrect && (
-                                      <>
-                                        <span className="text-slate-400">→</span>
-                                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
-                                          {highlightVocab(q.correctAnswer)}
-                                        </span>
-                                      </>
-                                    )}
+                                      {!isCorrect && (
+                                        <>
+                                          <span className="text-slate-400">→</span>
+                                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                                            {q.correctAnswer}
+                                          </span>
+                                        </>
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
 
-                                {q.isCorrect
-                                  ? <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                                  : <XCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />}
-                              </div>
-                            ))}
+                                  {isCorrect
+                                    ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                                    : <XCircle2 className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />}
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       ))}
