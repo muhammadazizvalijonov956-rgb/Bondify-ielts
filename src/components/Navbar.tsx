@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useAuth } from '@/lib/contexts/AuthContext';
-import { LogOut, User as UserIcon, Settings, ShieldCheck, FileText, Zap } from 'lucide-react';
+import { LogOut, User as UserIcon, Settings, ShieldCheck, FileText, Zap, Gamepad2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { auth } from '@/lib/firebase/config';
 import { signOut } from 'firebase/auth';
@@ -68,6 +68,10 @@ export default function Navbar() {
           <Link href="/pricing" className="text-slate-600 hover:text-primary-600 font-medium transition-colors">Pricing</Link>
           <Link href="/updates" className="text-slate-600 hover:text-primary-600 font-medium transition-colors">Updates</Link>
           <Link href="/events" className="text-slate-600 hover:text-primary-600 font-medium transition-colors">Events</Link>
+          <Link href="/vocab-game" className="text-slate-600 hover:text-primary-600 font-medium transition-colors flex items-center gap-1.5">
+            Vocab Game
+            <span className="bg-primary-100 text-primary-700 text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider scale-90">New</span>
+          </Link>
           <Link href="/download" className="text-slate-600 hover:text-primary-600 font-medium transition-colors">Download</Link>
         </div>
 
@@ -131,6 +135,11 @@ export default function Navbar() {
                   <Link href="/results" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
                     <FileText className="w-4 h-4 text-slate-400" />
                     My Results
+                  </Link>
+
+                  <Link href="/vocab-game" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors border-l-2 border-primary-500">
+                    <Gamepad2 className="w-4 h-4 text-primary-500" />
+                    <span className="font-medium text-slate-900">Vocab Game</span>
                   </Link>
 
                   {profile.role === 'admin' && (
