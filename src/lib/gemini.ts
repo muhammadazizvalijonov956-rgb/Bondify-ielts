@@ -37,7 +37,7 @@ export const vocabSchema = {
 
 export async function generateVocabularyQuestions(count: number, level: number, weakWords: string[] = []) {
   const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-2.5-flash',
     generationConfig: {
       responseMimeType: "application/json",
       responseSchema: vocabSchema as any,

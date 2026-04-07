@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   try {
     const { word, sentence } = await req.json();
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     const prompt = `Evaluate if the following sentence use the English word "${word}" correctly, naturally, and with proper grammar. 
     Sentence: "${sentence}"
