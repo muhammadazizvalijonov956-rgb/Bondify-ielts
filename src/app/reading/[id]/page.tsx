@@ -87,6 +87,18 @@ function renderItems(
     if (item.type === 'heading') return <h2 key={key} className="font-bold text-[15px] text-black mb-4 mt-2">{item.content}</h2>;
     if (item.type === 'section') return <h3 key={key} className="font-bold text-[13px] text-black mt-6 mb-2 uppercase tracking-wide border-b border-slate-200 pb-1">{item.content}</h3>;
     if (item.type === 'text') return <p key={key} className="text-[13px] text-black mb-1">{item.content}</p>;
+    if (item.type === 'image') {
+      return (
+        <div key={key} className="mb-6 w-full flex flex-col items-center">
+          {item.imageUrl && (
+            <img src={item.imageUrl} alt={item.imageCaption || "Question Image"} className="max-w-full h-auto rounded-lg border border-slate-200 shadow-sm" />
+          )}
+          {item.imageCaption && (
+            <p className="text-[13px] text-slate-700 font-medium mt-3 bg-slate-50 px-4 py-2 rounded-lg border border-slate-100">{item.imageCaption}</p>
+          )}
+        </div>
+      );
+    }
     if (item.type === 'question') {
       const qKey = getQuestionKey(item);
       const answerType = item.answer_type ?? 'blank';
