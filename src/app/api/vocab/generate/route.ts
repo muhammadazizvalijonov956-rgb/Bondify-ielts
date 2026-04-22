@@ -37,3 +37,16 @@ Rules:
     return NextResponse.json({ error: "Failed to generate content" }, { status: 500 });
   }
 }
+// Inside your generate function
+const aiResponse = await callGeminiAI(prompt); 
+
+// ADD THIS CHECK:
+if (!aiResponse || !aiResponse.questions) {
+  throw new Error("AI failed to generate questions. Check API Key configuration.");
+}
+
+// Then proceed to Firebase
+await setDoc(doc(db, "daily_sessions", sessionId), {
+  questions: aiResponse.questions, // This won't be undefined anymore
+  // ...
+});
