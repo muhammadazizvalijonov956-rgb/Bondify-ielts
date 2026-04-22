@@ -1,52 +1,50 @@
-
 import { NextResponse } from 'next/server';
+import { db } from '@/lib/firebase'; // Ensure this path is correct for your project
+import { doc, setDoc } from 'firebase/firestore';
+
+// Placeholder for your Gemini AI logic
+// You need to make sure this function is imported or defined
+async function callGeminiAI(prompt: string) {
+  // This should contain your actual Gemini API fetch logic
+  // For now, I'm assuming it returns { questions: [...] }
+  return null; 
+}
 
 export async function POST(req: Request) {
   try {
-    const { title, type, short_note } = await req.json();
+    const { title, type, short_note, sessionId } = await req.json();
 
-    const prompt = `Write a professional product update for an IELTS preparation platform.
+    const prompt = `Generate an IELTS Vocabulary game based on: ${title}. ${short_note}`;
 
-Title: ${title}
-Type: ${type}
-Details: ${short_note}
+    // 1. Call the AI inside the async function
+    const aiResponse = await callGeminiAI(prompt);
 
-Rules:
-* Keep it clear and professional
-* Maximum 5 sentences
-* No emojis
-* Focus on user benefit
-* Sound like a real SaaS product update`;
+    // 2. The Safety Check (Prevents the "undefined" Firebase error)
+    if (!aiResponse || !aiResponse.questions) {
+       // Instead of throwing a raw error, we return a clean JSON error to the frontend
+       return NextResponse.json(
+         { error: "AI failed to generate questions. Check Gemini API Key." }, 
+         { status: 500 }
+       );
+    }
 
-    // Note for Future Implementation: Connect to OpenAI / Gemini here
-    // Example: const response = await openai.chat.completions.create({ messages: [{ role: 'user', content: prompt }] })
+    // 3. Save to Firebase now that we KNOW questions exist
+    if (sessionId) {
+      await setDoc(doc(db, "daily_sessions", sessionId), {
+        questions: aiResponse.questions,
+        createdAt: new Date().toISOString(),
+        type: type,
+        title: title
+      });
+    }
 
-    // Temporary Fallback Formatter
-    const cleanType = type === 'new' ? 'New Feature' : 
-                      type === 'improvement' ? 'System Improvement' : 
-                      type === 'fix' ? 'Bug Fix' : 'Announcement';
+    return NextResponse.json({ 
+      ai_content: "Success", 
+      questions: aiResponse.questions 
+    });
 
-    const mockResponse = `We are excited to announce a ${cleanType?.toLowerCase()} regarding ${title}. ${short_note} This update is designed to directly enhance your preparation experience and streamline your study workflow. We remain committed to providing the most effective tools for your IELTS success.`;
-
-    // Add a slight delay to simulate AI processing
-    await new Promise(resolve => setTimeout(resolve, 1500)); 
-
-    return NextResponse.json({ ai_content: mockResponse });
   } catch (error) {
     console.error("Failed to generate AI content", error);
-    return NextResponse.json({ error: "Failed to generate content" }, { status: 500 });
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
-// Inside your generate function
-const aiResponse = await callGeminiAI(prompt); 
-
-// ADD THIS CHECK:
-if (!aiResponse || !aiResponse.questions) {
-  throw new Error("AI failed to generate questions. Check API Key configuration.");
-}
-
-// Then proceed to Firebase
-await setDoc(doc(db, "daily_sessions", sessionId), {
-  questions: aiResponse.questions, // This won't be undefined anymore
-  // ...
-});
