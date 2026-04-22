@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/firebase'; // Ensure this path is correct for your project
+import { db } from '@/lib/firebase'; 
 import { doc, setDoc } from 'firebase/firestore';
 
-// Placeholder for your Gemini AI logic
-// You need to make sure this function is imported or defined
+// 1. Helper function (Define this OUTSIDE the POST function)
 async function callGeminiAI(prompt: string) {
-  // This should contain your actual Gemini API fetch logic
-  // For now, I'm assuming it returns { questions: [...] }
+  // Replace this with your actual Gemini fetch logic later
+  // For now, we return null so the safety check catches it instead of crashing
   return null; 
 }
 
@@ -14,37 +13,34 @@ export async function POST(req: Request) {
   try {
     const { title, type, short_note, sessionId } = await req.json();
 
-    const prompt = `Generate an IELTS Vocabulary game based on: ${title}. ${short_note}`;
+    const prompt = `Write a professional product update for an IELTS preparation platform.
+    Title: ${title}
+    Type: ${type}
+    Details: ${short_note}`;
 
-    // 1. Call the AI inside the async function
+    // 2. ALL logic using 'await' must be INSIDE these curly braces
     const aiResponse = await callGeminiAI(prompt);
 
-    // 2. The Safety Check (Prevents the "undefined" Firebase error)
+    // 3. The Safety Check
     if (!aiResponse || !aiResponse.questions) {
-       // Instead of throwing a raw error, we return a clean JSON error to the frontend
-       return NextResponse.json(
-         { error: "AI failed to generate questions. Check Gemini API Key." }, 
-         { status: 500 }
-       );
+      return NextResponse.json(
+        { error: "AI failed to generate questions. Check Gemini API Key." }, 
+        { status: 500 }
+      );
     }
 
-    // 3. Save to Firebase now that we KNOW questions exist
+    // 4. Firebase Logic
     if (sessionId) {
       await setDoc(doc(db, "daily_sessions", sessionId), {
         questions: aiResponse.questions,
         createdAt: new Date().toISOString(),
-        type: type,
-        title: title
       });
     }
 
-    return NextResponse.json({ 
-      ai_content: "Success", 
-      questions: aiResponse.questions 
-    });
+    return NextResponse.json({ ai_content: "Success", questions: aiResponse.questions });
 
   } catch (error) {
     console.error("Failed to generate AI content", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
-}
+} // <--- Everything must be ABOVE this closing bracket
