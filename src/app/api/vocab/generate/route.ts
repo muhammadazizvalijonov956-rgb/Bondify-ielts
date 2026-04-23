@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/firebase'; 
+import { db } from '@/lib/firebase/firestore'; 
 import { doc, setDoc } from 'firebase/firestore';
 
 // 1. Helper function (Define this OUTSIDE the POST function)
