@@ -41,12 +41,22 @@ export default function VocabGamePage() {
         
         // Call API to generate questions
         const response = await fetch('/api/vocab/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ count, level, weakWords: [...weakWords, ...reviewWords] })
-        });
-        
-        const data = await response.json();
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ 
+    count, 
+    level, 
+    weakWords: [...weakWords, ...reviewWords],
+    sessionId: `${user.uid}_${today}` // Added this line
+  })
+});
+
+const data = await response.json();
+
+// Add this safety check to handle errors gracefully
+if (!response.ok || !data.questions) {
+  throw new Error(data.error || "Failed to generate questions");
+}
         
         currentSession = {
           id: `${user.uid}_${today}`,
