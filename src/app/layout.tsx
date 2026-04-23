@@ -7,6 +7,7 @@ import Navbar from '@/components/Navbar';
 import LockdownManager from '@/components/LockdownManager';
 import UpdatePopup from '@/components/UpdatePopup';
 import { Suspense } from 'react';
+import Script from 'next/script'; // 1. Add this import
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
   title: 'Bondify | Master the IELTS',
   description: 'Premium IELTS practice platform with scoring and progress tracking',
   icons: {
-    icon: '/logo.png', // Fallback if logo not added
+    icon: '/logo.png',
   }
 };
 
@@ -25,6 +26,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      {/* 2. Add the AdSense script here */}
+      <head>
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9895448669703452"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
+      </head>
       <body className={inter.className}>
         <Toaster position="top-center" />
         <AuthProvider>
