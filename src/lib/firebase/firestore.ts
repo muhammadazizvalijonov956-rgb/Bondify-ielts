@@ -1,6 +1,11 @@
 import { collection, doc, setDoc, getDoc, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import { db } from './config';
 
+// ADD THIS LINE BELOW THE IMPORTS:
+export { db }; 
+
+// ... rest of your interfaces and functions (UserProfile, saveAttempt, etc.)
+
 // User Schema (users collection)
 export interface UserProfile {
   uid: string;
