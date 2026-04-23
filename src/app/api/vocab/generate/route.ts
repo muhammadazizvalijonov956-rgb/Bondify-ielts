@@ -3,69 +3,56 @@ import { db } from '@/lib/firebase/firestore';
 import { doc, setDoc } from 'firebase/firestore';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// 1. Updated Helper Function with real logic
 async function callGeminiAI(prompt: string): Promise<any> {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    console.error("Missing GEMINI_API_KEY");
-    return null;
-  }
+  if (!apiKey) return null;
 
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({ 
     model: "gemini-1.5-flash",
-    generationConfig: { responseMimeType: "application/json" } // Ensures JSON output
+    generationConfig: { responseMimeType: "application/json" } 
   });
 
   try {
     const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    return JSON.parse(text); 
-  } catch (error) {
-    console.error("Gemini AI Error:", error);
+    return JSON.parse(result.response.text());
+  } catch (e) {
+    console.error("AI Error:", e);
     return null;
   }
 }
 
 export async function POST(req: Request) {
   try {
-    // 2. Extract the actual data sent by the Vocab Game
     const { count, level, weakWords, sessionId } = await req.json();
 
-    // 3. Construct a prompt that asks for JSON specifically
-    const prompt = `Generate ${count || 10} IELTS vocabulary questions. 
-    Difficulty Level: ${level || 2}. 
-    Focus words: ${weakWords ? weakWords.join(', ') : 'common IELTS academic words'}.
-    Return ONLY a JSON object with this structure: 
-    { "questions": [{ "id": "string", "text": "string", "options": ["string"], "correctAnswer": "string" }] }`;
+    const prompt = `Generate ${count} IELTS vocabulary questions. Difficulty: Level ${level}.
+    Words to include: ${weakWords?.join(', ')}.
+    Return JSON format: { "questions": [{ "word": "string", "text": "question text", "options": ["A", "B", "C", "D"], "correctAnswer": "string", "difficulty": ${level} }] }`;
 
-    const aiResponse = await callGeminiAI(prompt);
+    const aiData = await callGeminiAI(prompt);
 
-    // 4. The Safety Check (triggers the 500 if AI fails)
-    if (!aiResponse || !aiResponse.questions) {
-      return NextResponse.json(
-        { error: "AI failed to generate questions. Check API Key and Logs." }, 
-        { status: 500 }
-      );
+    if (!aiData || !aiData.questions) {
+      return NextResponse.json({ error: "AI generation failed" }, { status: 500 });
     }
 
-    // 5. Firebase Logic
+    // This ensures the session is saved in Firestore exactly where the frontend looks for it
     if (sessionId) {
+      const today = new Date().toISOString().split('T')[0];
       await setDoc(doc(db, "daily_sessions", sessionId), {
-        questions: aiResponse.questions,
-        level: level,
-        createdAt: new Date().toISOString(),
+        questions: aiData.questions,
+        userId: sessionId.split('_')[0],
+        date: today,
+        completed: false,
+        score: 0,
+        currentIndex: 0
       });
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      questions: aiResponse.questions 
-    });
+    return NextResponse.json({ questions: aiData.questions });
 
   } catch (error) {
-    console.error("Server Error:", error);
+    console.error("Route Error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
