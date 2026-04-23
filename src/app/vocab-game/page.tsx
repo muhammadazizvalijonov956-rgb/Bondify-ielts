@@ -47,15 +47,14 @@ export default function VocabGamePage() {
     count, 
     level, 
     weakWords: [...weakWords, ...reviewWords],
-    sessionId: `${user.uid}_${today}` // Added this line
+    sessionId: `${user.uid}_${today}` 
   })
 });
 
-const data = await response.json();
+const data = await response.json(); // ONLY ONE OF THESE
 
-// Add this safety check to handle errors gracefully
 if (!response.ok || !data.questions) {
-  throw new Error(data.error || "Failed to generate questions");
+  throw new Error(data.error || "AI generation failed");
 }
         
         currentSession = {
