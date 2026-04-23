@@ -3,9 +3,9 @@ import { db } from '@/lib/firebase/firestore';
 import { doc, setDoc } from 'firebase/firestore';
 
 // 1. Helper function (Define this OUTSIDE the POST function)
-async function callGeminiAI(prompt: string) {
-  // Replace this with your actual Gemini fetch logic later
-  // For now, we return null so the safety check catches it instead of crashing
+async function callGeminiAI(prompt: string): Promise<any> {
+  // Adding ': Promise<any>' tells TypeScript to stop complaining 
+  // about the structure of the returned object for now.
   return null; 
 }
 
