@@ -64,4 +64,3 @@ export interface TokenTransaction {
   createdAt: string;
 }
 
-export * from './vocab';

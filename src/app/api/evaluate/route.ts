@@ -25,7 +25,9 @@ export async function POST(req: Request) {
       if (apiKey) {
         let textInput = attempt.section === 'writing'
           ? attempt.writingResults?.map((r: any) => `Task: ${r.partTitle}\nResponse: ${r.response}`).join('\n\n')
-          : attempt.audioTranscript || attempt.answers || 'No input';
+          : attempt.agentHistory 
+            ? attempt.agentHistory.map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n')
+            : (attempt.audioTranscript || attempt.answers || 'No input');
 
         const promptTemplate = `Evaluate this IELTS response.
 Task: ${attempt.section}

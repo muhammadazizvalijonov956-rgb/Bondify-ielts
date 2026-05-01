@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Trophy, Star, ArrowRight, CheckCircle2, Flame, Zap as Lightning, Clock, Layout, Play, Gift, Monitor } from 'lucide-react';
+import { Trophy, Star, ArrowRight, CheckCircle2, Flame, Zap as Lightning, Clock, Layout, Play, Gift, Monitor, GraduationCap } from 'lucide-react';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
@@ -123,7 +123,7 @@ export default function Home() {
                 {profile && profile.leaderboardStats?.testsCompleted === 0 ? (
                   <>
                     <div className="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6 border border-slate-100 shadow-inner group cursor-help transition-all hover:bg-white hover:shadow-md">
-                        <Trophy className="w-10 h-10 text-slate-300 group-hover:text-amber-500 transition-colors" />
+                      <Trophy className="w-10 h-10 text-slate-300 group-hover:text-amber-500 transition-colors" />
                     </div>
                     <h3 className="text-xl font-black text-slate-800 mb-2">No Records Yet!</h3>
                     <p className="text-slate-500 font-medium mb-6 text-sm leading-relaxed max-w-[200px] mx-auto">
@@ -136,61 +136,61 @@ export default function Home() {
                 ) : (
                   <div className="w-full">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest">Performance</h3>
-                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-primary-50 text-primary-600 rounded-lg text-[10px] font-black border border-primary-100">
-                           TARGET {profile?.targetBand || 7.5}
-                        </div>
+                      <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest">Performance</h3>
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 bg-primary-50 text-primary-600 rounded-lg text-[10px] font-black border border-primary-100">
+                        TARGET {profile?.targetBand || 7.5}
+                      </div>
                     </div>
-                    
+
                     {/* Simplified SVG Line Chart */}
                     <div className="h-32 w-full relative mb-6">
-                        <svg className="w-full h-full overflow-visible">
-                            {/* Target Band Line */}
-                            {(() => {
-                                const target = profile?.targetBand || 7.5;
-                                const y = 100 - (target / 9) * 100;
-                                return (
-                                    <line 
-                                        x1="0" y1={`${y}%`} x2="100%" y2={`${y}%`} 
-                                        stroke="#cbd5e1" strokeWidth="2" strokeDasharray="4 4" 
-                                    />
-                                );
-                            })()}
-                            
-                            {/* Trend Line (Mocked if no data) */}
-                            <polyline
-                                fill="none"
-                                stroke="url(#gradient)"
-                                strokeWidth="4"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                points="0,110 20,95 40,105 60,80 80,85 100,50"
-                                className="transition-all duration-1000"
-                                style={{ strokeDasharray: 1000, strokeDashoffset: 0 }}
+                      <svg className="w-full h-full overflow-visible">
+                        {/* Target Band Line */}
+                        {(() => {
+                          const target = profile?.targetBand || 7.5;
+                          const y = 100 - (target / 9) * 100;
+                          return (
+                            <line
+                              x1="0" y1={`${y}%`} x2="100%" y2={`${y}%`}
+                              stroke="#cbd5e1" strokeWidth="2" strokeDasharray="4 4"
                             />
-                            <defs>
-                                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                    <stop offset="0%" stopColor="#4f46e5" />
-                                    <stop offset="100%" stopColor="#818cf8" />
-                                </linearGradient>
-                            </defs>
-                        </svg>
-                        <div className="absolute top-0 right-0 -translate-y-2 translate-x-1 flex flex-col items-center">
-                            <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                            <span className="text-[10px] font-black text-slate-800">NOW</span>
-                        </div>
+                          );
+                        })()}
+
+                        {/* Trend Line (Mocked if no data) */}
+                        <polyline
+                          fill="none"
+                          stroke="url(#gradient)"
+                          strokeWidth="4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          points="0,110 20,95 40,105 60,80 80,85 100,50"
+                          className="transition-all duration-1000"
+                          style={{ strokeDasharray: 1000, strokeDashoffset: 0 }}
+                        />
+                        <defs>
+                          <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#4f46e5" />
+                            <stop offset="100%" stopColor="#818cf8" />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                      <div className="absolute top-0 right-0 -translate-y-2 translate-x-1 flex flex-col items-center">
+                        <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                        <span className="text-[10px] font-black text-slate-800">NOW</span>
+                      </div>
                     </div>
 
                     <p className="text-slate-500 font-medium mb-4 text-xs leading-relaxed text-left">
-                        Seeing your score physically sitting below your <strong>Target Band</strong> creates an immediate psychological "itch" to improve.
+                      Seeing your score physically sitting below your <strong>Target Band</strong> creates an immediate psychological "itch" to improve.
                     </p>
-                    
+
                     <div className="w-full bg-slate-100 rounded-full h-2 mb-2 overflow-hidden">
                       <div className="bg-primary-600 h-full rounded-full transition-all" style={{ width: '65%' }}></div>
                     </div>
                     <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        <span>Milestone Progress</span>
-                        <span>65%</span>
+                      <span>Milestone Progress</span>
+                      <span>65%</span>
                     </div>
                   </div>
                 )}
@@ -262,6 +262,13 @@ export default function Home() {
             dark
           />
           <PracticeCard
+            title="SAT Practice"
+            description="Premium adaptive exams from Bluebooky platform."
+            href="/sat-practice"
+            icon={<div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center shadow-inner"><GraduationCap className="w-6 h-6" /></div>}
+            color="bg-white border-slate-100 hover:border-blue-500 shadow-sm"
+          />
+          <PracticeCard
             title="Exam Mode: On."
             description="Experience the real IELTS interface. No tabs, no notifications, just you and the clock."
             href="/download"
@@ -304,16 +311,16 @@ export default function Home() {
           </div>
         </div>
       </section>}
- <div className="flex justify-center gap-6 text-sm text-slate-500 mt-16 pb-8">
-  <Link href="/privacy" className="hover:text-slate-900">
-    Privacy Policy
-  </Link>
-  <Link href="/terms" className="hover:text-slate-900">
-    Terms of Service
-  </Link>
-</div>
+      <div className="flex justify-center gap-6 text-sm text-slate-500 mt-16 pb-8">
+        <Link href="/privacy" className="hover:text-slate-900">
+          Privacy Policy
+        </Link>
+        <Link href="/terms" className="hover:text-slate-900">
+          Terms of Service
+        </Link>
+      </div>
 
-</div>
+    </div>
   );
 }
 
