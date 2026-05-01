@@ -7,7 +7,8 @@ import Navbar from '@/components/Navbar';
 import LockdownManager from '@/components/LockdownManager';
 import UpdatePopup from '@/components/UpdatePopup';
 import { Suspense } from 'react';
-import Script from 'next/script'; // 1. Add this import
+import Script from 'next/script';
+import { GoogleAnalytics } from '@next/third-parties/google';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -36,6 +37,7 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
+        {process.env.NEXT_PUBLIC_GA_ID && <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />}
         <Toaster position="top-center" />
         <AuthProvider>
           <Suspense fallback={null}>

@@ -145,7 +145,7 @@ export default function SATPracticePage() {
                   rel="noopener noreferrer"
                   className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-200"
                 >
-                  {test.id.includes('rw') ? 'RESUME EXAM' : 'START EXAM'}
+                  START EXAM
                   <ChevronRight className="w-5 h-5" />
                 </a>
               </div>
