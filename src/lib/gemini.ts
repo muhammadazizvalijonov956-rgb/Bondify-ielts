@@ -4,7 +4,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export async function generateUpdateContent(title: string, type: string, shortNote: string) {
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-1.5-flash',
   });
 
   const prompt = `You are a professional product manager writing a system update for an IELTS preparation platform called Bondify.

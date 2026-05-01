@@ -12,8 +12,12 @@ export async function POST(req: NextRequest) {
     const aiContent = await generateUpdateContent(title, type, short_note);
 
     return NextResponse.json({ ai_content: aiContent });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in updates generation API:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('Stack trace:', error.stack);
+    return NextResponse.json({
+      error: 'Internal Server Error',
+      details: error.message || 'Unknown error'
+    }, { status: 500 });
   }
 }
