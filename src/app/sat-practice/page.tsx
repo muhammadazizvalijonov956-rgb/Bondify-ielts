@@ -16,7 +16,7 @@ export default function SATPracticePage() {
       type: 'Reading & Writing',
       icon: <BookOpen className="w-6 h-6 text-blue-500" />,
       color: 'blue',
-      url: 'https://bluebooky.com/' // Direct links might be session based, so linking to main site
+      url: 'https://bluebooky.com/#/auth?mode=signup&ref=4WSGRGBw' // Direct links might be session based, so linking to main site
     },
     {
       id: 'math-march-2026',
@@ -25,7 +25,7 @@ export default function SATPracticePage() {
       type: 'Mathematics',
       icon: <Calculator className="w-6 h-6 text-indigo-500" />,
       color: 'indigo',
-      url: 'https://bluebooky.com/'
+      url: 'https://bluebooky.com/#/auth?mode=signup&ref=4WSGRGBw'
     },
     {
       id: 'rw-dec-2025',
@@ -34,7 +34,7 @@ export default function SATPracticePage() {
       type: 'Reading & Writing',
       icon: <BookOpen className="w-6 h-6 text-blue-500" />,
       color: 'blue',
-      url: 'https://bluebooky.com/'
+      url: 'https://bluebooky.com/#/auth?mode=signup&ref=4WSGRGBw'
     }
   ];
 
@@ -90,7 +90,7 @@ export default function SATPracticePage() {
             <p className="text-slate-500 font-medium">Latest adaptive exams for 2025-2026</p>
           </div>
           <a
-            href="https://bluebooky.com"
+            href="https://bluebooky.com/#/auth?mode=signup&ref=4WSGRGBw"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-blue-600 font-bold hover:text-blue-700 transition-colors"
@@ -162,7 +162,7 @@ export default function SATPracticePage() {
               </p>
             </div>
             <a
-              href="https://bluebooky.com"
+              href="https://bluebooky.com/#/auth?mode=signup&ref=4WSGRGBw"
               target="_blank"
               rel="noopener noreferrer"
               className="mt-8 bg-white/10 hover:bg-white/20 border border-white/20 py-4 rounded-xl font-bold text-center transition-all backdrop-blur-sm"
